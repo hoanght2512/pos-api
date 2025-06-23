@@ -131,7 +131,6 @@ public class AuthServiceImpl implements AuthService {
     public void forgotPassword(ForgotPasswordRequest forgotPasswordRequest) {
         userRepository.findByEmail(forgotPasswordRequest.getEmail()).ifPresent(user -> {
             passwordResetTokenRepository.findByUserAndUsedFalse(user).ifPresent(passwordResetTokenRepository::delete);
-            passwordResetTokenRepository.flush();
 
             String token = UUID.randomUUID().toString();
             Instant expiryDate = Instant.now().plusSeconds(3600);
