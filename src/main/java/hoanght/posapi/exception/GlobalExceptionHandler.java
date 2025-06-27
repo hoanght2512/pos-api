@@ -5,11 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -40,6 +42,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<DataResponse<Void>> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
+        log.debug("Authentication error: {}", ex.getMessage());
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(), "Authentication failed. Please check your credentials.", Instant.now(), request.getDescription(false));
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<DataResponse<Void>> handleBadCredentialsException(BadCredentialsException ex, WebRequest request) {
         log.debug("Bad credentials: {}", ex.getMessage());
@@ -51,6 +60,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<DataResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
         DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), ex.getMessage(), Instant.now(), request.getDescription(false));
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<DataResponse<Void>> handleNoResourceFoundException(NoResourceFoundException ex, WebRequest request) {
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.NOT_FOUND.value(), HttpStatus.NOT_FOUND.getReasonPhrase(), ex.getMessage(), Instant.now(), request.getDescription(false));
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)

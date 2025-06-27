@@ -1,5 +1,6 @@
 package hoanght.posapi.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import hoanght.posapi.common.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -21,6 +22,7 @@ public class User {
     @Column(name = "username", nullable = false, unique = true)
     private String username;
 
+    @JsonIgnore
     @Column(name = "password", nullable = false)
     private String password;
 
@@ -29,6 +31,9 @@ public class User {
 
     @Column(name = "email", nullable = false, unique = true)
     private String email;
+
+    @Column(name = "is_enabled", nullable = false)
+    private boolean isEnabled = true;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
