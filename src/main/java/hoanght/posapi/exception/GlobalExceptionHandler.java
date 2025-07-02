@@ -1,6 +1,7 @@
 package hoanght.posapi.exception;
 
-import hoanght.posapi.dto.DataResponse;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import hoanght.posapi.dto.response.DataResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,10 +25,23 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<DataResponse<Void>> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
-
-        log.debug(errors.toString());
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), "Validation Failed", Instant.now(), request.getDescription(false), errors);
+        Object targetObject = ex.getBindingResult().getTarget();
+        Class<?> dtoClass = targetObject.getClass();
+        ex.getBindingResult().getFieldErrors().forEach(error -> {
+            String fieldName = error.getField();
+            String jsonFieldName = fieldName;
+            try {
+                Field field = dtoClass.getDeclaredField(fieldName);
+                if (field.isAnnotationPresent(JsonProperty.class)) {
+                    JsonProperty jsonProperty = field.getAnnotation(JsonProperty.class);
+                    jsonFieldName = jsonProperty.value();
+                }
+            } catch (NoSuchFieldException e) {
+                log.warn("No JsonProperty annotation found for field: {}", fieldName);
+            }
+            errors.put(jsonFieldName, error.getDefaultMessage());
+        });
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), "Invalid request data", Instant.now(), request.getDescription(false), errors);
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
@@ -34,6 +49,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<DataResponse<Void>> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
         DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.NOT_FOUND.value(), HttpStatus.NOT_FOUND.getReasonPhrase(), ex.getMessage(), Instant.now(), request.getDescription(false));
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<DataResponse<Void>> handleBadRequestException(BadRequestException ex, WebRequest request) {
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), ex.getMessage(), Instant.now(), request.getDescription(false));
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
@@ -45,14 +66,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<DataResponse<Void>> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
         log.debug("Authentication error: {}", ex.getMessage());
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(), "Authentication failed. Please check your credentials.", Instant.now(), request.getDescription(false));
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(), "Unauthorized", Instant.now(), request.getDescription(false));
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<DataResponse<Void>> handleBadCredentialsException(BadCredentialsException ex, WebRequest request) {
         log.debug("Bad credentials: {}", ex.getMessage());
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(), "Invalid username or password.", Instant.now(), request.getDescription(false));
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(), "Unauthorized", Instant.now(), request.getDescription(false));
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
@@ -70,7 +91,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<DataResponse<Void>> handleGlobalException(Exception ex, WebRequest request) {
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(), "An unexpected error occurred. Please try again later.", // Thông báo lỗi chung
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(), "Internal server error",
                 Instant.now(), request.getDescription(false));
         log.error("An unexpected error occurred: {}", ex.getMessage(), ex);
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);

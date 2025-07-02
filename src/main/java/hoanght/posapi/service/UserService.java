@@ -1,7 +1,8 @@
 package hoanght.posapi.service;
 
-import hoanght.posapi.dto.UserRequest;
-import hoanght.posapi.dto.UserResponse;
+import hoanght.posapi.dto.request.UserCreationRequest;
+import hoanght.posapi.dto.request.UserUpdateRequest;
+import hoanght.posapi.dto.response.UserResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -12,9 +13,9 @@ public interface UserService {
 
     UserResponse findUserById(UUID id);
 
-    UserResponse createUser(UserRequest userRequest);
+    UserResponse createUser(UserCreationRequest userCreationRequest);
 
-    UserResponse updateUser(UUID id, UserRequest userRequest);
+    UserResponse updateUser(UUID id, UserUpdateRequest userUpdateRequest);
 
     void deleteUser(UUID id);
 }

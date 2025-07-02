@@ -1,7 +1,8 @@
 package hoanght.posapi.service.impl;
 
-import hoanght.posapi.dto.UserRequest;
-import hoanght.posapi.dto.UserResponse;
+import hoanght.posapi.dto.request.UserCreationRequest;
+import hoanght.posapi.dto.request.UserUpdateRequest;
+import hoanght.posapi.dto.response.UserResponse;
 import hoanght.posapi.entity.User;
 import hoanght.posapi.exception.ResourceNotFoundException;
 import hoanght.posapi.repository.UserRepository;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -34,24 +36,22 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse createUser(UserRequest userRequest) {
+    public UserResponse createUser(UserCreationRequest userCreationRequest) {
         User newUser = new User();
-        newUser.setUsername(userRequest.getUsername());
-        newUser.setPassword(userRequest.getPassword());
-        newUser.setEmail(userRequest.getEmail());
-        newUser.setFullName(userRequest.getFullName());
+        newUser.setUsername(userCreationRequest.getUsername());
+        newUser.setPassword(userCreationRequest.getPassword());
+        newUser.setFullName(userCreationRequest.getFullName());
         return modelMapper.map(userRepository.save(newUser), UserResponse.class);
     }
 
+    // Cần xem lại
     @Override
-    public UserResponse updateUser(UUID id, UserRequest userRequest) {
+    public UserResponse updateUser(UUID id, UserUpdateRequest userUpdateRequest) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-        existingUser.setUsername(userRequest.getUsername());
-        existingUser.setPassword(userRequest.getPassword());
-        existingUser.setEmail(userRequest.getEmail());
-        existingUser.setFullName(userRequest.getFullName());
+        Optional.ofNullable(userUpdateRequest.getFullName())
+                .ifPresent(existingUser::setFullName);
 
         return modelMapper.map(userRepository.save(existingUser), UserResponse.class);
     }

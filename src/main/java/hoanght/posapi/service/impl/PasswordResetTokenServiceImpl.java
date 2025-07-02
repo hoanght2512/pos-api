@@ -1,7 +1,6 @@
 package hoanght.posapi.service.impl;
 
 import hoanght.posapi.entity.User;
-import hoanght.posapi.repository.UserRepository;
 import hoanght.posapi.service.PasswordResetTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -14,16 +13,13 @@ import java.util.concurrent.TimeUnit;
 @Service
 @RequiredArgsConstructor
 public class PasswordResetTokenServiceImpl implements PasswordResetTokenService {
-    private final UserRepository userRepository;
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
-    public Optional<User> getUserByToken(String token) {
-        String userId = (String) redisTemplate.opsForValue().get("password_reset_token:" + token);
-        if (userId == null) {
-            return Optional.empty();
-        }
-        return userRepository.findById(UUID.fromString(userId));
+    public Optional<UUID> getUserIdByToken(String token) {
+        return Optional.ofNullable(redisTemplate.opsForValue().get("password_reset_token:" + token))
+                .map(Object::toString)
+                .map(UUID::fromString);
     }
 
     @Override

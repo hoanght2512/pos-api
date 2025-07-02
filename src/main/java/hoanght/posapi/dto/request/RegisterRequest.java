@@ -1,4 +1,4 @@
-package hoanght.posapi.dto;
+package hoanght.posapi.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;

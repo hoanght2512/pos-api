@@ -1,4 +1,4 @@
-package hoanght.posapi.dto;
+package hoanght.posapi.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -16,8 +16,6 @@ import java.util.UUID;
 public class AuthResponse {
     @JsonProperty("access_token")
     private String accessToken;
-    @JsonProperty("refresh_token")
-    private String refreshToken;
     @JsonProperty("token_type")
     private String tokenType;
     @JsonProperty("user_id")

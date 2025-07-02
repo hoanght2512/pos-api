@@ -1,4 +1,4 @@
-package hoanght.posapi.dto;
+package hoanght.posapi.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

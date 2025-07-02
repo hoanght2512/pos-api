@@ -1,16 +1,14 @@
-package hoanght.posapi.dto;
+package hoanght.posapi.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-import java.util.Set;
-
 @Data
-public class UserRequest {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ProfileResponse {
     private String username;
-    private String password;
     private String email;
     @JsonProperty("full_name")
     private String fullName;
-    private Set<String> roles;
 }

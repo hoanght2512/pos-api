@@ -1,6 +1,12 @@
 package hoanght.posapi.service;
 
-import hoanght.posapi.dto.*;
+import hoanght.posapi.dto.request.ForgotPasswordRequest;
+import hoanght.posapi.dto.request.LoginRequest;
+import hoanght.posapi.dto.request.RegisterRequest;
+import hoanght.posapi.dto.request.ResetPasswordRequest;
+import hoanght.posapi.dto.response.AuthResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
     /**
@@ -9,23 +15,23 @@ public interface AuthService {
      * @param loginRequest DTO chứa thông tin đăng nhập của người dùng.
      * @return AuthResponse chứa thông tin xác thực nếu đăng nhập thành công.
      */
-    AuthResponse login(LoginRequest loginRequest);
+    AuthResponse login(LoginRequest loginRequest, HttpServletResponse response);
 
     /**
      * Đăng ký người dùng mới.
      *
      * @param registerRequest DTO chứa thông tin đăng ký người dùng.
-     * @return AuthResponse chứa thông tin xác thực nếu đăng ký thành công.
      */
-    AuthResponse register(RegisterRequest registerRequest);
+    void register(RegisterRequest registerRequest);
 
     /**
      * Làm mới token của người dùng bằng refresh token.
      *
-     * @param refreshTokenRequest DTO chứa refresh token cần làm mới.
+     * @param request HttpServletRequest chứa thông tin yêu cầu.
+     * @param response HttpServletResponse để gửi phản hồi.
      * @return AuthResponse chứa token mới nếu làm mới thành công.
      */
-    AuthResponse refreshToken(RefreshTokenRequest refreshTokenRequest);
+    AuthResponse refreshToken(HttpServletRequest request, HttpServletResponse response);
 
     /**
      * Gửi email đặt lại mật khẩu cho người dùng.
@@ -44,7 +50,8 @@ public interface AuthService {
     /**
      * Đăng xuất người dùng bằng cách xóa refresh token.
      *
-     * @param refreshTokenRequest Giá trị của refresh token cần xóa.
+     * @param request HttpServletRequest chứa thông tin yêu cầu.
+     * @param response HttpServletResponse để gửi phản hồi.
      */
-    void logout(RefreshTokenRequest refreshTokenRequest);
+    void logout(HttpServletRequest request, HttpServletResponse response);
 }

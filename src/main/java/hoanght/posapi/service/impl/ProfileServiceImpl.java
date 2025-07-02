@@ -1,18 +1,20 @@
 package hoanght.posapi.service.impl;
 
-import hoanght.posapi.dto.ChangePasswordRequest;
-import hoanght.posapi.dto.UserProfileRequest;
-import hoanght.posapi.dto.UserProfileResponse;
+import hoanght.posapi.dto.request.ChangePasswordRequest;
+import hoanght.posapi.dto.request.ProfileUpdateRequest;
+import hoanght.posapi.dto.response.ProfileResponse;
 import hoanght.posapi.entity.User;
 import hoanght.posapi.repository.UserRepository;
 import hoanght.posapi.security.CustomUserDetails;
 import hoanght.posapi.service.ProfileService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProfileServiceImpl implements ProfileService {
@@ -21,18 +23,23 @@ public class ProfileServiceImpl implements ProfileService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    public UserProfileResponse getUserProfile(UserDetails userDetails) {
+    public ProfileResponse getUserProfile(UserDetails userDetails) {
         User user = ((CustomUserDetails) userDetails).getUser();
-        return modelMapper.map(user, UserProfileResponse.class);
+        return modelMapper.map(user, ProfileResponse.class);
     }
 
     @Override
-    public UserProfileResponse updateUserProfile(UserDetails userDetails, UserProfileRequest userProfileRequest) {
+    public ProfileResponse updateUserProfile(UserDetails userDetails, ProfileUpdateRequest profileUpdateRequest) {
         User user = ((CustomUserDetails) userDetails).getUser();
-        user.setFullName(userProfileRequest.getFullName());
-        user.setEmail(userProfileRequest.getEmail());
+        if (profileUpdateRequest.getFullName() != null) {
+            user.setFullName(profileUpdateRequest.getFullName());
+        }
+        // Verify email
+        if (profileUpdateRequest.getEmail() != null) {
+            user.setEmail(profileUpdateRequest.getEmail());
+        }
         userRepository.save(user);
-        return modelMapper.map(user, UserProfileResponse.class);
+        return modelMapper.map(user, ProfileResponse.class);
     }
 
     @Override

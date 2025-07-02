@@ -1,4 +1,4 @@
-package hoanght.posapi.dto;
+package hoanght.posapi.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;

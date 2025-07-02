@@ -1,14 +1,14 @@
 package hoanght.posapi.service;
 
-import hoanght.posapi.dto.ChangePasswordRequest;
-import hoanght.posapi.dto.UserProfileRequest;
-import hoanght.posapi.dto.UserProfileResponse;
+import hoanght.posapi.dto.request.ChangePasswordRequest;
+import hoanght.posapi.dto.request.ProfileUpdateRequest;
+import hoanght.posapi.dto.response.ProfileResponse;
 import org.springframework.security.core.userdetails.UserDetails;
 
 public interface ProfileService {
-    UserProfileResponse getUserProfile(UserDetails userDetails);
+    ProfileResponse getUserProfile(UserDetails userDetails);
 
-    UserProfileResponse updateUserProfile(UserDetails userDetails, UserProfileRequest userProfileRequest);
+    ProfileResponse updateUserProfile(UserDetails userDetails, ProfileUpdateRequest profileUpdateRequest);
 
     void changePassword(UserDetails userDetails, ChangePasswordRequest changePasswordRequest);
 }

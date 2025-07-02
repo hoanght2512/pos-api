@@ -1,13 +1,12 @@
 package hoanght.posapi.util;
 
+import hoanght.posapi.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -20,11 +19,8 @@ import java.util.function.Function;
 @Slf4j
 @Component
 public class JwtProvider {
-    @Value("${jwt.secret}")
+    @Value("${app.secret}")
     private String SECRET_KEY;
-
-    @Value("${jwt.expiration}")
-    private long EXPIRATION_TIME;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -47,15 +43,14 @@ public class JwtProvider {
         return extractExpiration(token).before(new Date());
     }
 
-    public String generateToken(Authentication authentication) {
+    public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        claims.put("roles", userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(java.util.stream.Collectors.toList()));
-        return createToken(claims, userDetails.getUsername());
+        claims.put("roles", user.getRoles());
+        return createToken(claims, user.getUsername());
     }
 
     private String createToken(Map<String, Object> claims, String subject) {
-        return Jwts.builder().subject(subject).claims(claims).signWith(getSigningKey()).issuedAt(new Date()).expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME)).compact();
+        return Jwts.builder().subject(subject).claims(claims).signWith(getSigningKey()).issuedAt(new Date()).expiration(new Date(System.currentTimeMillis() + 604800000)).compact();
     }
 
     public Boolean validateToken(String token, UserDetails userDetails) {

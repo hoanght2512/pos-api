@@ -1,11 +1,15 @@
 package hoanght.posapi.service;
 
-import hoanght.posapi.dto.AuthResponse;
+import hoanght.posapi.dto.response.AuthResponse;
 import hoanght.posapi.entity.User;
-import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.util.Optional;
+import java.util.UUID;
 
 public interface RefreshTokenService {
-    AuthResponse getAuthResponse(User user, Authentication authentication);
-    String getUserIdFromRefreshToken(String refreshToken);
+    AuthResponse getAuthResponse(User user, HttpServletResponse response);
+
+    Optional<UUID> getUserIdFromRefreshToken(String refreshToken);
     void deleteRefreshToken(String refreshToken);
 }
