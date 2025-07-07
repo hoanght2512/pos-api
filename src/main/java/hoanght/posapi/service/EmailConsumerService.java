@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class EmailConsumer {
+public class EmailConsumerService {
     private final JavaMailSender mailSender;
 
     @RabbitListener(queues = "${app.rabbitmq.email-queue-name}")

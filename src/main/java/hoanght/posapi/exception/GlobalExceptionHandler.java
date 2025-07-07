@@ -1,32 +1,34 @@
 package hoanght.posapi.exception;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import hoanght.posapi.dto.response.DataResponse;
+import hoanght.posapi.dto.DataResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.lang.reflect.Field;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<DataResponse<Void>> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
+    public ResponseEntity<DataResponse<Void>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        log.debug("Validation error: {}", ex.getMessage());
         Map<String, String> errors = new HashMap<>();
         Object targetObject = ex.getBindingResult().getTarget();
-        Class<?> dtoClass = targetObject.getClass();
+        Class<?> dtoClass = Objects.requireNonNull(targetObject).getClass();
         ex.getBindingResult().getFieldErrors().forEach(error -> {
             String fieldName = error.getField();
             String jsonFieldName = fieldName;
@@ -41,59 +43,77 @@ public class GlobalExceptionHandler {
             }
             errors.put(jsonFieldName, error.getDefaultMessage());
         });
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), "Invalid request data", Instant.now(), request.getDescription(false), errors);
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.BAD_REQUEST.value(), "Invalid request data", errors);
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<DataResponse<Void>> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.NOT_FOUND.value(), HttpStatus.NOT_FOUND.getReasonPhrase(), ex.getMessage(), Instant.now(), request.getDescription(false));
+    @ExceptionHandler(AlreadyExistsException.class)
+    public ResponseEntity<DataResponse<Void>> handleResourceAlreadyExistsException(AlreadyExistsException ex) {
+        log.debug("Resource already exists: {}", ex.getMessage());
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.CONFLICT.value(), ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<DataResponse<Void>> handleResourceNotFoundException(NotFoundException ex) {
+        log.debug("Resource not found: {}", ex.getMessage());
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<DataResponse<Void>> handleBadRequestException(BadRequestException ex, WebRequest request) {
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), ex.getMessage(), Instant.now(), request.getDescription(false));
+    public ResponseEntity<DataResponse<Void>> handleBadRequestException(BadRequestException ex) {
+        log.debug("Bad request: {}", ex.getMessage());
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<DataResponse<Void>> handleUsernameNotFoundException(UsernameNotFoundException ex, WebRequest request) {
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(), ex.getMessage(), Instant.now(), request.getDescription(false));
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<DataResponse<Void>> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
+    public ResponseEntity<DataResponse<Void>> handleAuthenticationException(AuthenticationException ex) {
         log.debug("Authentication error: {}", ex.getMessage());
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(), "Unauthorized", Instant.now(), request.getDescription(false));
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.UNAUTHORIZED.value(), "Unauthorized");
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<DataResponse<Void>> handleBadCredentialsException(BadCredentialsException ex, WebRequest request) {
-        log.debug("Bad credentials: {}", ex.getMessage());
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(), "Unauthorized", Instant.now(), request.getDescription(false));
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<DataResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
+        log.debug("Access denied: {}", ex.getMessage());
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.FORBIDDEN.value(), "Access denied");
+        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<DataResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), ex.getMessage(), Instant.now(), request.getDescription(false));
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<DataResponse<Void>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        log.debug("Malformed JSON request: {}", ex.getMessage());
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.BAD_REQUEST.value(), "Malformed JSON request");
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<DataResponse<Void>> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
+        log.debug("HTTP method not supported: {}", ex.getMessage());
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.METHOD_NOT_ALLOWED.value(), "Method not allowed");
+        return new ResponseEntity<>(errorResponse, HttpStatus.METHOD_NOT_ALLOWED);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<DataResponse<Void>> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException ex) {
+        log.debug("Unsupported media type: {}", ex.getMessage());
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(), "Unsupported media type");
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<DataResponse<Void>> handleNoResourceFoundException(NoResourceFoundException ex, WebRequest request) {
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.NOT_FOUND.value(), HttpStatus.NOT_FOUND.getReasonPhrase(), ex.getMessage(), Instant.now(), request.getDescription(false));
+    public ResponseEntity<DataResponse<Void>> handleNoResourceFoundException(NoResourceFoundException ex) {
+        log.debug("Resource not found: {}", ex.getMessage());
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<DataResponse<Void>> handleGlobalException(Exception ex, WebRequest request) {
-        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(), "Internal server error",
-                Instant.now(), request.getDescription(false));
+    public ResponseEntity<DataResponse<Void>> handleGlobalException(Exception ex) {
         log.error("An unexpected error occurred: {}", ex.getMessage(), ex);
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error");
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

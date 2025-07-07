@@ -1,24 +1,22 @@
 package hoanght.posapi.service.impl;
 
 import hoanght.posapi.common.Role;
+import hoanght.posapi.dto.AuthResponse;
 import hoanght.posapi.dto.EmailMessage;
-import hoanght.posapi.dto.request.ForgotPasswordRequest;
-import hoanght.posapi.dto.request.LoginRequest;
-import hoanght.posapi.dto.request.RegisterRequest;
-import hoanght.posapi.dto.request.ResetPasswordRequest;
-import hoanght.posapi.dto.response.AuthResponse;
+import hoanght.posapi.dto.user.UserLoginRequest;
+import hoanght.posapi.dto.user.UserRegisterRequest;
+import hoanght.posapi.dto.user.UserResetPasswordRequest;
 import hoanght.posapi.entity.User;
+import hoanght.posapi.exception.AlreadyExistsException;
 import hoanght.posapi.exception.BadRequestException;
-import hoanght.posapi.exception.ResourceNotFoundException;
+import hoanght.posapi.exception.NotFoundException;
 import hoanght.posapi.repository.UserRepository;
 import hoanght.posapi.security.CustomUserDetails;
 import hoanght.posapi.service.AuthService;
 import hoanght.posapi.service.PasswordResetTokenService;
 import hoanght.posapi.service.RefreshTokenService;
+import hoanght.posapi.util.JwtProvider;
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -40,13 +38,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthServiceImpl implements AuthService {
-    private final AuthenticationManager authenticationManager;
-    private final PasswordEncoder passwordEncoder;
-    private final RefreshTokenService refreshTokenService;
     private final PasswordResetTokenService passwordResetTokenService;
+    private final AuthenticationManager authenticationManager;
+    private final RefreshTokenService refreshTokenService;
+    private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final RabbitTemplate rabbitTemplate;
     private final TemplateEngine templateEngine;
+    private final JwtProvider jwtProvider;
 
     @Value("${app.frontend.name}")
     private String frontendName;
@@ -73,94 +72,83 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public AuthResponse login(LoginRequest loginRequest, HttpServletResponse response) {
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+    public AuthResponse login(UserLoginRequest userLoginRequest) {
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userLoginRequest.getUsername(), userLoginRequest.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         User user = userDetails.getUser();
+        String refreshToken = refreshTokenService.createAndSaveRefreshToken(user.getId().toString());
+        String accessToken = jwtProvider.generateToken(user);
 
-        return refreshTokenService.getAuthResponse(user, response);
+        return AuthResponse.builder().accessToken(accessToken).refreshToken(refreshToken).tokenType("Bearer").build();
     }
 
     @Override
     @Transactional
-    public void register(RegisterRequest registerRequest) {
-        if (userRepository.existsByUsername(registerRequest.getUsername()))
-            throw new BadRequestException("Username already exists");
+    public AuthResponse register(UserRegisterRequest userRegisterRequest) {
+        if (userRepository.existsByUsername(userRegisterRequest.getUsername()))
+            throw new AlreadyExistsException("Username already exists");
 
-        if (userRepository.existsByEmail(registerRequest.getEmail()))
-            throw new BadRequestException("Email already exists");
+        if (userRepository.existsByEmail(userRegisterRequest.getEmail()))
+            throw new AlreadyExistsException("Email already exists");
 
         User user = new User();
-        user.setUsername(registerRequest.getUsername());
-        user.setEmail(registerRequest.getEmail());
-        user.setFullName(registerRequest.getFullName());
-        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setUsername(userRegisterRequest.getUsername());
+        user.setEmail(userRegisterRequest.getEmail());
+        user.setFullName(userRegisterRequest.getFullName());
+        user.setPassword(passwordEncoder.encode(userRegisterRequest.getPassword()));
 
         userRepository.save(user);
+        String refreshToken = refreshTokenService.createAndSaveRefreshToken(user.getId().toString());
+        String accessToken = jwtProvider.generateToken(user);
+
+        return AuthResponse.builder().accessToken(accessToken).refreshToken(refreshToken).tokenType("Bearer").build();
     }
 
     @Override
     @Transactional
-    public AuthResponse refreshToken(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = getFromCookie(request);
-        UUID userId = refreshTokenService.getUserIdFromRefreshToken(refreshToken).orElseThrow(() -> new BadRequestException("Invalid refresh token"));
+    public AuthResponse refresh(String token) {
+        UUID userId = refreshTokenService.getUserIdFromRefreshToken(token).orElseThrow(() -> new BadRequestException("Invalid refresh token"));
         User user = userRepository.findById(userId).orElseThrow(() -> new BadRequestException("Invalid refresh token"));
-        refreshTokenService.deleteRefreshToken(refreshToken);
+        refreshTokenService.deleteRefreshToken(token);
 
-        return refreshTokenService.getAuthResponse(user, response);
+        String newRefreshToken = refreshTokenService.createAndSaveRefreshToken(user.getId().toString());
+        String accessToken = jwtProvider.generateToken(user);
+
+        return AuthResponse.builder().accessToken(accessToken).refreshToken(newRefreshToken).tokenType("Bearer").build();
     }
 
     @Override
     @Transactional
-    public void forgotPassword(ForgotPasswordRequest forgotPasswordRequest) {
-        userRepository.findByEmailAndProvider(forgotPasswordRequest.getEmail(), "local").ifPresent(user -> {
+    public void logout(String token) {
+        refreshTokenService.deleteRefreshToken(token);
+    }
+
+    @Override
+    @Transactional
+    public void forgotPassword(String email) {
+        userRepository.findByEmailAndProvider(email, "local").ifPresent(user -> {
             if (!user.isEnabled() || !user.isEmailVerified())
                 throw new BadRequestException("User is locked or email not verified");
-            String resetToken = passwordResetTokenService.generateToken(user);
+            String resetToken = passwordResetTokenService.createAndSaveToken(user.getId().toString());
             Context context = new Context();
             context.setVariable("name", user.getFullName());
             context.setVariable("resetUrl", String.format("%s/reset-password?token=%s", frontendUrl, resetToken));
             context.setVariable("appName", frontendName);
             context.setVariable("expirationTime", "15 phút");
             String htmlContent = templateEngine.process("email/reset-password", context);
-            EmailMessage emailMessage = EmailMessage.builder()
-                    .to(user.getEmail()).subject(String.format("[%s] Yêu cầu đặt lại mật khẩu", frontendName)).body(htmlContent)
-                    .build();
+            EmailMessage emailMessage = EmailMessage.builder().to(user.getEmail()).subject(String.format("[%s] Yêu cầu đặt lại mật khẩu", frontendName)).body(htmlContent).build();
             rabbitTemplate.convertAndSend(emailExchangeName, emailRoutingKey, emailMessage);
         });
     }
 
     @Override
     @Transactional
-    public void resetPassword(ResetPasswordRequest resetPasswordRequest) {
-        UUID userId = passwordResetTokenService.getUserIdByToken(resetPasswordRequest.getToken()).orElseThrow(() -> new BadRequestException("Invalid token"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Invalid token"));
-        user.setPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
+    public void resetPassword(UserResetPasswordRequest userResetPasswordRequest) {
+        UUID userId = passwordResetTokenService.getUserIdByToken(userResetPasswordRequest.getToken()).orElseThrow(() -> new BadRequestException("Invalid reset token"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("Invalid reset token"));
+        user.setPassword(passwordEncoder.encode(userResetPasswordRequest.getNewPassword()));
         userRepository.save(user);
-        passwordResetTokenService.deleteToken(resetPasswordRequest.getToken());
-    }
-
-    @Override
-    @Transactional
-    public void logout(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = getFromCookie(request);
-        refreshTokenService.deleteRefreshToken(refreshToken);
-        Cookie cookie = new Cookie("refresh_token", null);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
-    }
-
-    private String getFromCookie(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (cookie.getName().equals("refresh_token")) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
+        passwordResetTokenService.deleteToken(userResetPasswordRequest.getToken());
     }
 }

@@ -1,57 +1,50 @@
 package hoanght.posapi.service;
 
-import hoanght.posapi.dto.request.ForgotPasswordRequest;
-import hoanght.posapi.dto.request.LoginRequest;
-import hoanght.posapi.dto.request.RegisterRequest;
-import hoanght.posapi.dto.request.ResetPasswordRequest;
-import hoanght.posapi.dto.response.AuthResponse;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import hoanght.posapi.dto.AuthResponse;
+import hoanght.posapi.dto.user.UserLoginRequest;
+import hoanght.posapi.dto.user.UserRegisterRequest;
+import hoanght.posapi.dto.user.UserResetPasswordRequest;
 
 public interface AuthService {
     /**
      * Đăng nhập người dùng.
      *
-     * @param loginRequest DTO chứa thông tin đăng nhập của người dùng.
-     * @return AuthResponse chứa thông tin xác thực nếu đăng nhập thành công.
+     * @param request DTO chứa thông tin đăng nhập của người dùng.
      */
-    AuthResponse login(LoginRequest loginRequest, HttpServletResponse response);
+    AuthResponse login(UserLoginRequest request);
 
     /**
      * Đăng ký người dùng mới.
      *
-     * @param registerRequest DTO chứa thông tin đăng ký người dùng.
+     * @param request DTO chứa thông tin đăng ký người dùng.
      */
-    void register(RegisterRequest registerRequest);
+    AuthResponse register(UserRegisterRequest request);
 
     /**
      * Làm mới token của người dùng bằng refresh token.
      *
-     * @param request HttpServletRequest chứa thông tin yêu cầu.
-     * @param response HttpServletResponse để gửi phản hồi.
-     * @return AuthResponse chứa token mới nếu làm mới thành công.
+     * @param token Refresh token của người dùng.
      */
-    AuthResponse refreshToken(HttpServletRequest request, HttpServletResponse response);
-
-    /**
-     * Gửi email đặt lại mật khẩu cho người dùng.
-     *
-     * @param forgotPasswordRequest DTO chứa thông tin email của người dùng.
-     */
-    void forgotPassword(ForgotPasswordRequest forgotPasswordRequest);
-
-    /**
-     * Xử lý việc đặt lại mật khẩu bằng cách sử dụng token đặt lại.
-     *
-     * @param resetPasswordRequest DTO chứa token và mật khẩu mới.
-     */
-    void resetPassword(ResetPasswordRequest resetPasswordRequest);
+    AuthResponse refresh(String token);
 
     /**
      * Đăng xuất người dùng bằng cách xóa refresh token.
      *
-     * @param request HttpServletRequest chứa thông tin yêu cầu.
-     * @param response HttpServletResponse để gửi phản hồi.
+     * @param token Refresh token của người dùng cần đăng xuất.
      */
-    void logout(HttpServletRequest request, HttpServletResponse response);
+    void logout(String token);
+
+    /**
+     * Gửi email đặt lại mật khẩu cho người dùng.
+     *
+     * @param email DTO chứa thông tin email của người dùng.
+     */
+    void forgotPassword(String email);
+
+    /**
+     * Xử lý việc đặt lại mật khẩu bằng cách sử dụng token đặt lại.
+     *
+     * @param request DTO chứa token và mật khẩu mới.
+     */
+    void resetPassword(UserResetPasswordRequest request);
 }

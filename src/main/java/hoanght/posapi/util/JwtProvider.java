@@ -22,6 +22,9 @@ public class JwtProvider {
     @Value("${app.secret}")
     private String SECRET_KEY;
 
+    @Value("${app.expiration-ms}")
+    private long EXPIRATION_MS;
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -50,7 +53,7 @@ public class JwtProvider {
     }
 
     private String createToken(Map<String, Object> claims, String subject) {
-        return Jwts.builder().subject(subject).claims(claims).signWith(getSigningKey()).issuedAt(new Date()).expiration(new Date(System.currentTimeMillis() + 604800000)).compact();
+        return Jwts.builder().subject(subject).claims(claims).signWith(getSigningKey()).issuedAt(new Date()).expiration(new Date(System.currentTimeMillis() + EXPIRATION_MS)).compact();
     }
 
     public Boolean validateToken(String token, UserDetails userDetails) {

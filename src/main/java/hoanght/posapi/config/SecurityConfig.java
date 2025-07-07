@@ -1,7 +1,6 @@
 package hoanght.posapi.config;
 
 import hoanght.posapi.filter.JwtRequestFilter;
-import hoanght.posapi.security.SuccessLoginHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +20,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -29,7 +33,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final JwtRequestFilter jwtRequestFilter;
     private final UserDetailsService userDetailsService;
-    private final SuccessLoginHandler successLoginHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -44,18 +47,25 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "https://ruacoffee.io.vn"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable);
         http.cors(Customizer.withDefaults());
-        http.authorizeHttpRequests(req -> req
-                .requestMatchers("/v1/auth/**", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll()
-                .requestMatchers("/v1/public/**").permitAll()
-                .requestMatchers("/v1/admin/**").hasRole("ADMIN")
-                .requestMatchers("/v1/user/**").hasAnyRole("USER", "ADMIN")
-                .anyRequest().authenticated());
+        http.authorizeHttpRequests(req -> req.requestMatchers("/v1/auth/**", "/v1/public/**", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll().requestMatchers("/v1/admin/**").hasRole("ADMIN").requestMatchers("/v1/user/**").hasAnyRole("USER", "ADMIN").anyRequest().authenticated());
         http.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
-        http.oauth2Login(oauth -> oauth.successHandler(successLoginHandler));
         http.exceptionHandling(exception -> exception.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
         return http.build();
     }

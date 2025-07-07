@@ -1,4 +1,4 @@
-package hoanght.posapi.dto.request;
+package hoanght.posapi.dto.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class ResetPasswordRequest {
+public class UserResetPasswordRequest {
     @NotBlank(message = "Token is required")
     private String token;
 
