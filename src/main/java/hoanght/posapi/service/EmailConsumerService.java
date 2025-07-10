@@ -1,6 +1,6 @@
 package hoanght.posapi.service;
 
-import hoanght.posapi.dto.EmailMessage;
+import hoanght.posapi.dto.common.EmailMessage;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;

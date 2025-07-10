@@ -1,6 +1,6 @@
 package hoanght.posapi.controller;
 
-import hoanght.posapi.dto.DataResponse;
+import hoanght.posapi.dto.common.DataResponse;
 import hoanght.posapi.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

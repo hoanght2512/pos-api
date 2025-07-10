@@ -1,10 +1,10 @@
-package hoanght.posapi.controller;
+package hoanght.posapi.controller.auth;
 
-import hoanght.posapi.dto.AuthResponse;
-import hoanght.posapi.dto.DataResponse;
-import hoanght.posapi.dto.user.UserLoginRequest;
-import hoanght.posapi.dto.user.UserRegisterRequest;
-import hoanght.posapi.dto.user.UserResetPasswordRequest;
+import hoanght.posapi.dto.auth.AuthResponse;
+import hoanght.posapi.dto.common.DataResponse;
+import hoanght.posapi.dto.auth.LoginRequest;
+import hoanght.posapi.dto.auth.RegisterRequest;
+import hoanght.posapi.dto.auth.ResetPasswordRequest;
 import hoanght.posapi.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,11 +12,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Slf4j
 @RestController
 @RequestMapping("/v1/auth")
 @RequiredArgsConstructor
@@ -30,8 +28,8 @@ public class AuthController {
             @ApiResponse(responseCode = "200", description = "User authenticated successfully"),
             @ApiResponse(responseCode = "401", description = "Invalid credentials")
     })
-    public ResponseEntity<DataResponse<AuthResponse>> login(@Valid @RequestBody UserLoginRequest userLoginRequest) {
-        return ResponseEntity.ok(DataResponse.success("Login successful", AuthService.login(userLoginRequest)));
+    public ResponseEntity<DataResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
+        return ResponseEntity.ok(DataResponse.success("Login successful", AuthService.login(loginRequest)));
     }
 
     @PostMapping("/register")
@@ -41,8 +39,8 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Invalid request data"),
             @ApiResponse(responseCode = "409", description = "Username or email already exists")
     })
-    public ResponseEntity<DataResponse<AuthResponse>> register(@Valid @RequestBody UserRegisterRequest userRegisterRequest) {
-        return ResponseEntity.ok(DataResponse.success("Registration successful", AuthService.register(userRegisterRequest)));
+    public ResponseEntity<DataResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest registerRequest) {
+        return ResponseEntity.ok(DataResponse.success("Registration successful", AuthService.register(registerRequest)));
     }
 
     @PostMapping("/refresh")
@@ -83,8 +81,8 @@ public class AuthController {
             @ApiResponse(responseCode = "200", description = "Password reset successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid token")
     })
-    public ResponseEntity<DataResponse<Void>> resetPassword(@Valid @RequestBody UserResetPasswordRequest userResetPasswordRequest) {
-        AuthService.resetPassword(userResetPasswordRequest);
+    public ResponseEntity<DataResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
+        AuthService.resetPassword(resetPasswordRequest);
         return ResponseEntity.ok(DataResponse.success("Password reset successfully"));
     }
 }

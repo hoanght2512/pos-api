@@ -1,8 +1,7 @@
 package hoanght.posapi.service.impl;
 
-import hoanght.posapi.service.RefreshTokenService;
+import hoanght.posapi.service.RedisTokenService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -11,10 +10,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
-public class RefreshTokenServiceImpl implements RefreshTokenService {
+public class RedisTokenServiceImpl implements RedisTokenService {
     private final RedisTemplate<String, String> redisTemplate;
 
     @Value("${app.refresh-token-expiration-ms}")
@@ -35,5 +33,22 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Override
     public void deleteRefreshToken(String refreshToken) {
         redisTemplate.delete("refresh_token:" + refreshToken);
+    }
+
+    @Override
+    public String createAndSavePasswordResetToken(String userId) {
+        String token = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set("password_reset_token:" + token, userId, 15, TimeUnit.MINUTES);
+        return token;
+    }
+
+    @Override
+    public Optional<UUID> getUserIdFromPasswordResetToken(String token) {
+        return Optional.ofNullable(redisTemplate.opsForValue().get("password_reset_token:" + token)).map(UUID::fromString);
+    }
+
+    @Override
+    public void deletePasswordResetToken(String token) {
+        redisTemplate.delete("password_reset_token:" + token);
     }
 }

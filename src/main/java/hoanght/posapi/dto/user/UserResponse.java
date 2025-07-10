@@ -8,10 +8,13 @@ import java.util.UUID;
 
 @Data
 public class UserResponse {
+    @JsonProperty("id")
     private UUID id;
 
+    @JsonProperty("username")
     private String username;
 
+    @JsonProperty("email")
     private String email;
 
     @JsonProperty("full_name")
@@ -23,5 +26,6 @@ public class UserResponse {
     @JsonProperty("is_enabled")
     private boolean isEnabled;
 
+    @JsonProperty("roles")
     private Set<String> roles;
 }
