@@ -1,11 +1,11 @@
-package hoanght.posapi.dto.user;
+package hoanght.posapi.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class UserLoginRequest {
+public class LoginRequest {
     @NotBlank(message = "Username or email is required")
     @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
     String username;

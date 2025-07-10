@@ -1,6 +1,6 @@
-package hoanght.posapi.controller;
+package hoanght.posapi.controller.admin;
 
-import hoanght.posapi.dto.DataResponse;
+import hoanght.posapi.dto.common.DataResponse;
 import hoanght.posapi.dto.user.UserResponse;
 import hoanght.posapi.dto.user.UserUpdateRequest;
 import hoanght.posapi.service.UserService;
@@ -48,7 +48,9 @@ public class UserController {
         PagedModel<EntityModel<UserResponse>> pagedModel = assembler.toModel(users, user -> EntityModel.of(user,
                 linkTo(methodOn(UserController.class).findUserById(user.getId())).withSelfRel(),
                 linkTo(methodOn(UserController.class).deleteUser(user.getId())).withRel("delete"),
-                linkTo(methodOn(UserController.class).updateUser(user.getId(), null)).withRel("update")));
+                linkTo(methodOn(UserController.class).updateUser(user.getId(), null)).withRel("update"),
+                linkTo(methodOn(UserController.class).findAllUsers(pageable, null)).withRel("list-users")
+        ));
         DataResponse<PagedModel<EntityModel<UserResponse>>> response = DataResponse.success("Fetched all users successfully", pagedModel);
         return ResponseEntity.ok(response);
     }
@@ -92,7 +94,11 @@ public class UserController {
 
     @DeleteMapping("/{userId}")
     @Operation(summary = "Delete user", description = "Delete a user by their unique identifier")
-    @ApiResponses({@ApiResponse(responseCode = "204", description = "User deleted successfully"), @ApiResponse(responseCode = "404", description = "User not found"), @ApiResponse(responseCode = "403", description = "Access forbidden")})
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "User deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "403", description = "Access forbidden")
+    })
     @PreAuthorize("@customSecurityExpression.isAdminOrSelf(#userId)")
     public ResponseEntity<Void> deleteUser(@PathVariable UUID userId) {
         userService.deleteUser(userId);

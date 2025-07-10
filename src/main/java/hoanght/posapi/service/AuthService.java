@@ -1,9 +1,9 @@
 package hoanght.posapi.service;
 
-import hoanght.posapi.dto.AuthResponse;
-import hoanght.posapi.dto.user.UserLoginRequest;
-import hoanght.posapi.dto.user.UserRegisterRequest;
-import hoanght.posapi.dto.user.UserResetPasswordRequest;
+import hoanght.posapi.dto.auth.AuthResponse;
+import hoanght.posapi.dto.auth.LoginRequest;
+import hoanght.posapi.dto.auth.RegisterRequest;
+import hoanght.posapi.dto.auth.ResetPasswordRequest;
 
 public interface AuthService {
     /**
@@ -11,14 +11,14 @@ public interface AuthService {
      *
      * @param request DTO chứa thông tin đăng nhập của người dùng.
      */
-    AuthResponse login(UserLoginRequest request);
+    AuthResponse login(LoginRequest request);
 
     /**
      * Đăng ký người dùng mới.
      *
      * @param request DTO chứa thông tin đăng ký người dùng.
      */
-    AuthResponse register(UserRegisterRequest request);
+    AuthResponse register(RegisterRequest request);
 
     /**
      * Làm mới token của người dùng bằng refresh token.
@@ -46,5 +46,5 @@ public interface AuthService {
      *
      * @param request DTO chứa token và mật khẩu mới.
      */
-    void resetPassword(UserResetPasswordRequest request);
+    void resetPassword(ResetPasswordRequest request);
 }

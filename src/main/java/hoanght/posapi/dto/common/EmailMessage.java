@@ -1,4 +1,4 @@
-package hoanght.posapi.dto;
+package hoanght.posapi.dto.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

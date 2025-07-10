@@ -1,4 +1,4 @@
-package hoanght.posapi.dto.user;
+package hoanght.posapi.dto.auth;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class UserRegisterRequest {
+public class RegisterRequest {
     @NotBlank(message = "Username is required")
     @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
     String username;
