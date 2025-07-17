@@ -1,6 +1,6 @@
 package hoanght.posapi.security;
 
-import hoanght.posapi.repository.UserRepository;
+import hoanght.posapi.repository.jpa.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

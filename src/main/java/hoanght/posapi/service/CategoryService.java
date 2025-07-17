@@ -6,16 +6,14 @@ import hoanght.posapi.dto.category.CategoryUpdateRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.util.UUID;
-
 public interface CategoryService {
     Page<CategoryResponse> findAll(Pageable pageable);
 
-    CategoryResponse findCategoryById(UUID categoryId);
+    CategoryResponse findCategoryById(Long categoryId);
 
     CategoryResponse createCategory(CategoryCreationRequest categoryCreationRequest);
 
-    CategoryResponse updateCategory(UUID categoryId, CategoryUpdateRequest categoryUpdateRequest);
+    CategoryResponse updateCategory(Long categoryId, CategoryUpdateRequest categoryUpdateRequest);
 
-    void deleteCategory(UUID categoryId);
+    void deleteCategory(Long categoryId);
 }

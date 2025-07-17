@@ -1,10 +1,10 @@
 package hoanght.posapi.controller.auth;
 
 import hoanght.posapi.dto.auth.AuthResponse;
-import hoanght.posapi.dto.common.DataResponse;
 import hoanght.posapi.dto.auth.LoginRequest;
 import hoanght.posapi.dto.auth.RegisterRequest;
 import hoanght.posapi.dto.auth.ResetPasswordRequest;
+import hoanght.posapi.dto.common.DataResponse;
 import hoanght.posapi.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

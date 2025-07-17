@@ -1,11 +1,12 @@
 package hoanght.posapi.service.impl;
 
+import hoanght.posapi.controller.admin.UserController;
 import hoanght.posapi.dto.user.UserResponse;
 import hoanght.posapi.dto.user.UserUpdateRequest;
-import hoanght.posapi.entity.User;
 import hoanght.posapi.exception.AlreadyExistsException;
 import hoanght.posapi.exception.NotFoundException;
-import hoanght.posapi.repository.UserRepository;
+import hoanght.posapi.model.User;
+import hoanght.posapi.repository.jpa.UserRepository;
 import hoanght.posapi.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
-import java.util.UUID;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Slf4j
 @Service
@@ -26,19 +29,31 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
 
+    private UserResponse mapToResponse(User user) {
+        UserResponse response = modelMapper.map(user, UserResponse.class);
+        response.add(linkTo(methodOn(UserController.class).findUserById(user.getId())).withSelfRel());
+        response.add(linkTo(methodOn(UserController.class).updateUser(user.getId(), null)).withRel("update"));
+        response.add(linkTo(methodOn(UserController.class).deleteUser(user.getId())).withRel("delete"));
+        return response;
+    }
+
     @Override
     public Page<UserResponse> findAll(Pageable pageable) {
-        Page<User> users = userRepository.findAll(pageable);
-        return users.map(user -> modelMapper.map(user, UserResponse.class));
+        return userRepository.findAll(pageable)
+                .map(this::mapToResponse);
     }
 
     @Override
-    public UserResponse findUserById(UUID id) {
-        return userRepository.findById(id).map(user -> modelMapper.map(user, UserResponse.class)).orElseThrow(() -> new NotFoundException("User not found"));
+    public UserResponse findUserById(Long id) {
+        UserResponse response = userRepository.findById(id)
+                .map(this::mapToResponse)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+        response.add(linkTo(methodOn(UserController.class).findAllUsers(Pageable.unpaged())).withRel("all"));
+        return response;
     }
 
     @Override
-    public UserResponse updateUser(UUID userId, UserUpdateRequest userUpdateRequest) {
+    public UserResponse updateUser(Long userId, UserUpdateRequest userUpdateRequest) {
         User existingUser = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
 
         Optional.ofNullable(userUpdateRequest.getFullName()).ifPresent(existingUser::setFullName);
@@ -52,12 +67,13 @@ public class UserServiceImpl implements UserService {
         Optional.ofNullable(userUpdateRequest.getIsEnabled()).ifPresent(existingUser::setEnabled);
         Optional.ofNullable(userUpdateRequest.getRoles()).ifPresent(existingUser::setRoles);
 
-        return modelMapper.map(userRepository.save(existingUser), UserResponse.class);
+        return mapToResponse(userRepository.save(existingUser));
     }
 
     @Override
-    public void deleteUser(UUID userId) {
-        User deleteUser = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
+    public void deleteUser(Long userId) {
+        User deleteUser = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
         userRepository.delete(deleteUser);
     }
 }

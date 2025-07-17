@@ -1,4 +1,4 @@
-package hoanght.posapi.entity.audit;
+package hoanght.posapi.model.audit;
 
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.LastModifiedBy;

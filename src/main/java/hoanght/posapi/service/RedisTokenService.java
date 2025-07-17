@@ -1,18 +1,17 @@
 package hoanght.posapi.service;
 
 import java.util.Optional;
-import java.util.UUID;
 
 public interface RedisTokenService {
-    String createAndSaveRefreshToken(String userId);
+    String createAndSaveRefreshToken(Long userId);
 
-    Optional<UUID> getUserIdFromRefreshToken(String refreshToken);
+    Optional<Long> getUserIdFromRefreshToken(String refreshToken);
 
     void deleteRefreshToken(String refreshToken);
 
-    String createAndSavePasswordResetToken(String userId);
+    String createAndSavePasswordResetToken(Long userId);
 
-    Optional<UUID> getUserIdFromPasswordResetToken(String token);
+    Optional<Long> getUserIdFromPasswordResetToken(String token);
 
     void deletePasswordResetToken(String token);
 }

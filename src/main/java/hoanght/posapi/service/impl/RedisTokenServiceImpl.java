@@ -13,21 +13,25 @@ import java.util.concurrent.TimeUnit;
 @Service
 @RequiredArgsConstructor
 public class RedisTokenServiceImpl implements RedisTokenService {
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${app.refresh-token-expiration-ms}")
     private long refreshTokenExpirationMs;
 
     @Override
-    public String createAndSaveRefreshToken(String userId) {
+    public String createAndSaveRefreshToken(Long userId) {
         String refreshToken = UUID.randomUUID().toString();
-        redisTemplate.opsForValue().set("refresh_token:" + refreshToken, userId, refreshTokenExpirationMs, TimeUnit.MILLISECONDS);
+        redisTemplate.opsForValue().set("refresh_token:" + refreshToken, userId.toString(), refreshTokenExpirationMs, TimeUnit.MILLISECONDS);
         return refreshToken;
     }
 
     @Override
-    public Optional<UUID> getUserIdFromRefreshToken(String refreshToken) {
-        return Optional.ofNullable(redisTemplate.opsForValue().get("refresh_token:" + refreshToken)).map(UUID::fromString);
+    public Optional<Long> getUserIdFromRefreshToken(String refreshToken) {
+        Object userId = redisTemplate.opsForValue().get("refresh_token:" + refreshToken);
+        if (userId instanceof Long) {
+            return Optional.of((Long) userId);
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -36,15 +40,19 @@ public class RedisTokenServiceImpl implements RedisTokenService {
     }
 
     @Override
-    public String createAndSavePasswordResetToken(String userId) {
+    public String createAndSavePasswordResetToken(Long userId) {
         String token = UUID.randomUUID().toString();
-        redisTemplate.opsForValue().set("password_reset_token:" + token, userId, 15, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set("password_reset_token:" + token, userId.toString(), 15, TimeUnit.MINUTES);
         return token;
     }
 
     @Override
-    public Optional<UUID> getUserIdFromPasswordResetToken(String token) {
-        return Optional.ofNullable(redisTemplate.opsForValue().get("password_reset_token:" + token)).map(UUID::fromString);
+    public Optional<Long> getUserIdFromPasswordResetToken(String token) {
+        Object userId = redisTemplate.opsForValue().get("password_reset_token:" + token);
+        if (userId instanceof Long) {
+            return Optional.of((Long) userId);
+        }
+        return Optional.empty();
     }
 
     @Override

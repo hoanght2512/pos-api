@@ -37,7 +37,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             try {
                 username = jwtProvider.extractUsername(jwt);
             } catch (Exception e) {
-                // Log exception if token is invalid or expired
                 logger.error("Error parsing JWT: " + e.getMessage());
             }
         }
@@ -46,8 +45,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
-            if (jwtProvider.validateToken(jwt, userDetails)) {
-
+            if (jwtProvider.validateToken(jwt)) {
                 UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);

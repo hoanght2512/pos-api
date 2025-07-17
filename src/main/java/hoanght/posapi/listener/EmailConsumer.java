@@ -1,4 +1,4 @@
-package hoanght.posapi.service;
+package hoanght.posapi.listener;
 
 import hoanght.posapi.dto.common.EmailMessage;
 import jakarta.mail.MessagingException;
@@ -13,10 +13,10 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class EmailConsumerService {
+public class EmailConsumer {
     private final JavaMailSender mailSender;
 
-    @RabbitListener(queues = "${app.rabbitmq.email-queue-name}")
+    @RabbitListener(queues = "${app.prefix}.email-queue")
     public void receiveEmailMessage(EmailMessage emailMessage) {
         log.debug("Received email message: {}", emailMessage);
         try {

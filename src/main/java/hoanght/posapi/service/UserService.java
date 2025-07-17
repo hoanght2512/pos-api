@@ -5,14 +5,12 @@ import hoanght.posapi.dto.user.UserUpdateRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.util.UUID;
-
 public interface UserService {
     Page<UserResponse> findAll(Pageable pageable);
 
-    UserResponse findUserById(UUID userId);
+    UserResponse findUserById(Long userId);
 
-    UserResponse updateUser(UUID userId, UserUpdateRequest userUpdateRequest);
+    UserResponse updateUser(Long userId, UserUpdateRequest userUpdateRequest);
 
-    void deleteUser(UUID userId);
+    void deleteUser(Long userId);
 }
