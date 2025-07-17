@@ -49,7 +49,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "https://ruacoffee.io.vn"));
+        configuration.setAllowedOrigins(List.of("https://ruacoffee.io.vn", "http://localhost:3000"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
@@ -63,7 +63,12 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable);
         http.cors(Customizer.withDefaults());
-        http.authorizeHttpRequests(req -> req.requestMatchers("/v1/auth/**", "/v1/public/**", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll().requestMatchers("/v1/admin/**").hasRole("ADMIN").requestMatchers("/v1/user/**").hasAnyRole("USER", "ADMIN").anyRequest().authenticated());
+        http.authorizeHttpRequests(req -> req
+                .requestMatchers("/v1/auth/**", "/v1/public/**", "/ws/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/v1/admin/**").hasRole("ADMIN")
+                .requestMatchers("/v1/user/**").hasAnyRole("USER", "ADMIN")
+                .anyRequest().authenticated());
         http.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         http.exceptionHandling(exception -> exception.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));

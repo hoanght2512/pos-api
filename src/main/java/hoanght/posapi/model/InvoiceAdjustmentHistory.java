@@ -1,11 +1,11 @@
-package hoanght.posapi.entity;
+package hoanght.posapi.model;
 
-import hoanght.posapi.entity.audit.UserDateAudit;
+import hoanght.posapi.model.audit.UserDateAudit;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.UUID;
+import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -13,9 +13,9 @@ import java.util.UUID;
 @Table(name = "invoice_adjustment_histories")
 public class InvoiceAdjustmentHistory extends UserDateAudit {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private UUID id;
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "invoice_id")
@@ -23,4 +23,10 @@ public class InvoiceAdjustmentHistory extends UserDateAudit {
 
     @Column(name = "description", nullable = false)
     private String description;
+
+    @Column(name = "price_at_adjustment", nullable = false)
+    private BigDecimal priceAtAdjustment;
+
+    @Column(name = "quantity_at_adjustment", nullable = false)
+    private Integer quantityAtAdjustment;
 }

@@ -15,13 +15,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PagedResourcesAssembler;
-import org.springframework.hateoas.EntityModel;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -43,35 +40,11 @@ public class CategoryController {
             @Parameter(description = "Page number for pagination"),
             @Parameter(description = "Page size for pagination")
     })
-    public ResponseEntity<DataResponse<PagedModel<EntityModel<CategoryResponse>>>> getAllCategories(Pageable pageable, PagedResourcesAssembler<CategoryResponse> assembler) {
+    public ResponseEntity<DataResponse<PagedModel<CategoryResponse>>> findAllCategories(@PageableDefault Pageable pageable) {
         Page<CategoryResponse> categories = categoryService.findAll(pageable);
-        PagedModel<EntityModel<CategoryResponse>> pagedModel = assembler.toModel(categories, category -> EntityModel.of(category,
-                linkTo(methodOn(CategoryController.class).getCategoryById(category.getId())).withSelfRel(),
-                linkTo(methodOn(CategoryController.class).updateCategory(category.getId(), null)).withRel("update"),
-                linkTo(methodOn(CategoryController.class).deleteCategory(category.getId())).withRel("delete"),
-                linkTo(methodOn(CategoryController.class).getAllCategories(pageable, null)).withRel("list-categories")
-        ));
-        pagedModel.add(linkTo(methodOn(CategoryController.class).createCategory(null)).withRel("create-category"));
+        PagedModel.PageMetadata pageMetadata = new PagedModel.PageMetadata(categories.getSize(), categories.getNumber(), categories.getTotalElements(), categories.getTotalPages());
+        PagedModel<CategoryResponse> pagedModel = PagedModel.of(categories.getContent(), pageMetadata, linkTo(methodOn(CategoryController.class).findAllCategories(pageable)).withSelfRel());
         return ResponseEntity.ok(DataResponse.success(pagedModel));
-    }
-
-    @PostMapping
-    @Operation(summary = "Create category", description = "Create a new category")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Category created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data"),
-            @ApiResponse(responseCode = "403", description = "Access forbidden")
-    })
-    public ResponseEntity<DataResponse<EntityModel<CategoryResponse>>> createCategory(@Valid @RequestBody CategoryCreationRequest categoryCreationRequest) {
-        CategoryResponse createdCategory = categoryService.createCategory(categoryCreationRequest);
-        EntityModel<CategoryResponse> entityModel = EntityModel.of(createdCategory,
-                linkTo(methodOn(CategoryController.class).getCategoryById(createdCategory.getId())).withSelfRel(),
-                linkTo(methodOn(CategoryController.class).updateCategory(createdCategory.getId(), null)).withRel("update"),
-                linkTo(methodOn(CategoryController.class).deleteCategory(createdCategory.getId())).withRel("delete"),
-                linkTo(methodOn(CategoryController.class).getAllCategories(Pageable.unpaged(), null)).withRel("list-categories")
-        );
-        return ResponseEntity.created(linkTo(methodOn(CategoryController.class).getCategoryById(createdCategory.getId())).toUri())
-                .body(DataResponse.success("Category created successfully", entityModel));
     }
 
     @GetMapping("/{categoryId}")
@@ -81,15 +54,22 @@ public class CategoryController {
             @ApiResponse(responseCode = "404", description = "Category not found"),
             @ApiResponse(responseCode = "403", description = "Access forbidden")
     })
-    public ResponseEntity<DataResponse<EntityModel<CategoryResponse>>> getCategoryById(@PathVariable UUID categoryId) {
+    public ResponseEntity<DataResponse<CategoryResponse>> findCategoryById(@PathVariable Long categoryId) {
         CategoryResponse category = categoryService.findCategoryById(categoryId);
-        EntityModel<CategoryResponse> entityModel = EntityModel.of(category,
-                linkTo(methodOn(CategoryController.class).getCategoryById(categoryId)).withSelfRel(),
-                linkTo(methodOn(CategoryController.class).updateCategory(categoryId, null)).withRel("update"),
-                linkTo(methodOn(CategoryController.class).deleteCategory(categoryId)).withRel("delete"),
-                linkTo(methodOn(CategoryController.class).getAllCategories(Pageable.unpaged(), null)).withRel("list-categories")
-        );
-        return ResponseEntity.ok(DataResponse.success(entityModel));
+        return ResponseEntity.ok(DataResponse.success("Category retrieved successfully", category));
+    }
+
+    @PostMapping
+    @Operation(summary = "Create category", description = "Create a new category")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Category created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "403", description = "Access forbidden")
+    })
+    public ResponseEntity<DataResponse<CategoryResponse>> createCategory(@Valid @RequestBody CategoryCreationRequest categoryCreationRequest) {
+        CategoryResponse createdCategory = categoryService.createCategory(categoryCreationRequest);
+        return ResponseEntity.created(linkTo(methodOn(CategoryController.class).findCategoryById(createdCategory.getId())).toUri())
+                .body(DataResponse.success("Category created successfully", createdCategory));
     }
 
     @PutMapping("/{categoryId}")
@@ -99,15 +79,9 @@ public class CategoryController {
             @ApiResponse(responseCode = "404", description = "Category not found"),
             @ApiResponse(responseCode = "403", description = "Access forbidden")
     })
-    public ResponseEntity<DataResponse<EntityModel<CategoryResponse>>> updateCategory(@PathVariable UUID categoryId, @Valid @RequestBody CategoryUpdateRequest categoryUpdateRequest) {
+    public ResponseEntity<DataResponse<CategoryResponse>> updateCategory(@PathVariable Long categoryId, @Valid @RequestBody CategoryUpdateRequest categoryUpdateRequest) {
         CategoryResponse updatedCategory = categoryService.updateCategory(categoryId, categoryUpdateRequest);
-        EntityModel<CategoryResponse> entityModel = EntityModel.of(updatedCategory,
-                linkTo(methodOn(CategoryController.class).getCategoryById(categoryId)).withSelfRel(),
-                linkTo(methodOn(CategoryController.class).updateCategory(categoryId, null)).withRel("update"),
-                linkTo(methodOn(CategoryController.class).deleteCategory(categoryId)).withRel("delete"),
-                linkTo(methodOn(CategoryController.class).getAllCategories(Pageable.unpaged(), null)).withRel("list-categories")
-        );
-        return ResponseEntity.ok(DataResponse.success(entityModel));
+        return ResponseEntity.ok(DataResponse.success("Category updated successfully", updatedCategory));
     }
 
     @DeleteMapping("/{categoryId}")
@@ -117,7 +91,7 @@ public class CategoryController {
             @ApiResponse(responseCode = "404", description = "Category not found"),
             @ApiResponse(responseCode = "403", description = "Access forbidden")
     })
-    public ResponseEntity<DataResponse<Void>> deleteCategory(@PathVariable UUID categoryId) {
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long categoryId) {
         categoryService.deleteCategory(categoryId);
         return ResponseEntity.noContent().build();
     }

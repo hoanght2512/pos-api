@@ -1,11 +1,9 @@
-package hoanght.posapi.entity;
+package hoanght.posapi.model;
 
-import hoanght.posapi.entity.audit.DateAudit;
+import hoanght.posapi.model.audit.DateAudit;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -13,9 +11,9 @@ import java.util.UUID;
 @Table(name = "inventories")
 public class Inventory extends DateAudit {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private UUID id;
+    private Long id;
 
     @OneToOne
     @JoinColumn(name = "product_id", unique = true, nullable = false)

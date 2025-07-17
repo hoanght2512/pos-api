@@ -1,7 +1,7 @@
-package hoanght.posapi.entity;
+package hoanght.posapi.model;
 
 import hoanght.posapi.common.OrderStatus;
-import hoanght.posapi.entity.audit.UserDateAudit;
+import hoanght.posapi.model.audit.UserDateAudit;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,7 +9,6 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -17,9 +16,9 @@ import java.util.UUID;
 @Table(name = "orders")
 public class Order extends UserDateAudit {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private UUID id;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_table_id", nullable = false)

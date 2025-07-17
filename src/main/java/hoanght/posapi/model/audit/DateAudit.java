@@ -1,4 +1,4 @@
-package hoanght.posapi.entity.audit;
+package hoanght.posapi.model.audit;
 
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;

@@ -1,14 +1,13 @@
-package hoanght.posapi.entity;
+package hoanght.posapi.model;
 
 import hoanght.posapi.common.InvoiceStatus;
 import hoanght.posapi.common.PaymentMethod;
-import hoanght.posapi.entity.audit.UserDateAudit;
+import hoanght.posapi.model.audit.UserDateAudit;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -16,17 +15,17 @@ import java.util.UUID;
 @Table(name = "invoices")
 public class Invoice extends UserDateAudit {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private UUID id;
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false, unique = true)
-    private Order order;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_table_id", nullable = false)
     private OrderTable orderTable;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false, unique = true)
+    private Order order;
 
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;

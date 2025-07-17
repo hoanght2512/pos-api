@@ -2,14 +2,16 @@ package hoanght.posapi.dto.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.springframework.hateoas.RepresentationModel;
 
 import java.util.Set;
-import java.util.UUID;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
-public class UserResponse {
+public class UserResponse extends RepresentationModel<UserResponse> {
     @JsonProperty("id")
-    private UUID id;
+    private Long id;
 
     @JsonProperty("username")
     private String username;

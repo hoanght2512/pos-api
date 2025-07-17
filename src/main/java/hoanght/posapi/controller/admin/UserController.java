@@ -14,14 +14,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PagedResourcesAssembler;
-import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -43,16 +39,11 @@ public class UserController {
             @Parameter(description = "Page number for pagination"),
             @Parameter(description = "Page size for pagination")
     })
-    public ResponseEntity<DataResponse<PagedModel<EntityModel<UserResponse>>>> findAllUsers(Pageable pageable, PagedResourcesAssembler<UserResponse> assembler) {
+    public ResponseEntity<DataResponse<PagedModel<UserResponse>>> findAllUsers(Pageable pageable) {
         Page<UserResponse> users = userService.findAll(pageable);
-        PagedModel<EntityModel<UserResponse>> pagedModel = assembler.toModel(users, user -> EntityModel.of(user,
-                linkTo(methodOn(UserController.class).findUserById(user.getId())).withSelfRel(),
-                linkTo(methodOn(UserController.class).deleteUser(user.getId())).withRel("delete"),
-                linkTo(methodOn(UserController.class).updateUser(user.getId(), null)).withRel("update"),
-                linkTo(methodOn(UserController.class).findAllUsers(pageable, null)).withRel("list-users")
-        ));
-        DataResponse<PagedModel<EntityModel<UserResponse>>> response = DataResponse.success("Fetched all users successfully", pagedModel);
-        return ResponseEntity.ok(response);
+        PagedModel.PageMetadata pageMetadata = new PagedModel.PageMetadata(users.getSize(), users.getNumber(), users.getTotalElements());
+        PagedModel<UserResponse> pagedModel = PagedModel.of(users.getContent(), pageMetadata, linkTo(methodOn(UserController.class).findAllUsers(pageable)).withSelfRel());
+        return ResponseEntity.ok(DataResponse.success("Users retrieved successfully", pagedModel));
     }
 
     @GetMapping("/{userId}")
@@ -62,15 +53,9 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found"),
             @ApiResponse(responseCode = "403", description = "Access forbidden")
     })
-    public ResponseEntity<DataResponse<EntityModel<UserResponse>>> findUserById(@PathVariable UUID userId) {
+    public ResponseEntity<DataResponse<UserResponse>> findUserById(@PathVariable Long userId) {
         UserResponse userResponse = userService.findUserById(userId);
-        EntityModel<UserResponse> entityModel = EntityModel.of(userResponse,
-                linkTo(methodOn(UserController.class).findUserById(userId)).withSelfRel(),
-                linkTo(methodOn(UserController.class).updateUser(userId, null)).withRel("update"),
-                linkTo(methodOn(UserController.class).deleteUser(userId)).withRel("delete"),
-                linkTo(methodOn(UserController.class).findAllUsers(Pageable.unpaged(), null)).withRel("list-users"));
-        DataResponse<EntityModel<UserResponse>> response = DataResponse.success("User retrieved successfully", entityModel);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(DataResponse.success("User retrieved successfully", userResponse));
     }
 
     @PutMapping("/{userId}")
@@ -80,16 +65,9 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found"),
             @ApiResponse(responseCode = "403", description = "Access forbidden")
     })
-    public ResponseEntity<DataResponse<EntityModel<UserResponse>>> updateUser(@PathVariable UUID userId, @Valid @RequestBody UserUpdateRequest userUpdateRequest) {
+    public ResponseEntity<DataResponse<UserResponse>> updateUser(@PathVariable Long userId, @Valid @RequestBody UserUpdateRequest userUpdateRequest) {
         UserResponse updatedUser = userService.updateUser(userId, userUpdateRequest);
-        EntityModel<UserResponse> entityModel = EntityModel.of(updatedUser,
-                linkTo(methodOn(UserController.class).findUserById(userId)).withSelfRel(),
-                linkTo(methodOn(UserController.class).updateUser(userId, null)).withRel("update"),
-                linkTo(methodOn(UserController.class).deleteUser(userId)).withRel("delete"),
-                linkTo(methodOn(UserController.class).findAllUsers(Pageable.unpaged(), null)).withRel("list-users")
-        );
-        DataResponse<EntityModel<UserResponse>> response = DataResponse.success("User updated successfully", entityModel);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(DataResponse.success("User updated successfully", updatedUser));
     }
 
     @DeleteMapping("/{userId}")
@@ -100,7 +78,7 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Access forbidden")
     })
     @PreAuthorize("@customSecurityExpression.isAdminOrSelf(#userId)")
-    public ResponseEntity<Void> deleteUser(@PathVariable UUID userId) {
+    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
         userService.deleteUser(userId);
         return ResponseEntity.noContent().build();
     }

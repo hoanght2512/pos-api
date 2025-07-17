@@ -1,6 +1,6 @@
 package hoanght.posapi.security;
 
-import hoanght.posapi.entity.User;
+import hoanght.posapi.model.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

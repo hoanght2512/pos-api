@@ -1,5 +1,6 @@
 package hoanght.posapi.dto.category;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -12,5 +13,6 @@ public class CategoryCreationRequest {
 
     private String description;
 
+    @JsonProperty("image_url")
     private String imageUrl;
 }

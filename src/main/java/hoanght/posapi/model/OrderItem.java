@@ -1,11 +1,12 @@
-package hoanght.posapi.entity;
+package hoanght.posapi.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.util.UUID;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -13,9 +14,9 @@ import java.util.UUID;
 @Table(name = "order_items")
 public class OrderItem {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private UUID id;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
@@ -30,4 +31,7 @@ public class OrderItem {
 
     @Column(name = "price_at_order", nullable = false)
     private BigDecimal priceAtOrder;
+
+    @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<OrderItemOption> orderItemOptions = new LinkedHashSet<>();
 }
