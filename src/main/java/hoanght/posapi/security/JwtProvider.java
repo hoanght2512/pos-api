@@ -1,4 +1,4 @@
-package hoanght.posapi.util;
+package hoanght.posapi.security;
 
 import hoanght.posapi.model.User;
 import io.jsonwebtoken.Claims;

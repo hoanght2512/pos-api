@@ -3,18 +3,16 @@ package hoanght.posapi.service.impl;
 import hoanght.posapi.common.Role;
 import hoanght.posapi.dto.auth.AuthResponse;
 import hoanght.posapi.dto.auth.LoginRequest;
-import hoanght.posapi.dto.auth.RegisterRequest;
 import hoanght.posapi.dto.auth.ResetPasswordRequest;
-import hoanght.posapi.exception.AlreadyExistsException;
 import hoanght.posapi.exception.BadRequestException;
 import hoanght.posapi.exception.NotFoundException;
 import hoanght.posapi.model.User;
 import hoanght.posapi.repository.jpa.UserRepository;
 import hoanght.posapi.security.CustomUserDetails;
+import hoanght.posapi.security.JwtProvider;
 import hoanght.posapi.service.AuthService;
 import hoanght.posapi.service.EmailService;
 import hoanght.posapi.service.RedisTokenService;
-import hoanght.posapi.util.JwtProvider;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,33 +62,6 @@ public class AuthServiceImpl implements AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         User user = userDetails.getUser();
-        String refreshToken = redisTokenService.createAndSaveRefreshToken(user.getId());
-        String accessToken = jwtProvider.generateToken(user);
-
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .expiresIn(expirationMs / 1000)
-                .build();
-    }
-
-    @Override
-    @Transactional
-    public AuthResponse register(RegisterRequest registerRequest) {
-        if (userRepository.existsByUsername(registerRequest.getUsername()))
-            throw new AlreadyExistsException("Username already exists");
-
-        if (userRepository.existsByEmail(registerRequest.getEmail()))
-            throw new AlreadyExistsException("Email already exists");
-
-        User user = new User();
-        user.setUsername(registerRequest.getUsername());
-        user.setEmail(registerRequest.getEmail());
-        user.setFullName(registerRequest.getFullName());
-        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-
-        userRepository.save(user);
         String refreshToken = redisTokenService.createAndSaveRefreshToken(user.getId());
         String accessToken = jwtProvider.generateToken(user);
 

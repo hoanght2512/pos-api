@@ -1,9 +1,9 @@
 package hoanght.posapi.repository.jpa;
 
-import hoanght.posapi.model.InvoiceAdjustmentHistory;
+import hoanght.posapi.model.OrderDetail;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface InvoiceAdjustmentHistoryRepository extends JpaRepository<InvoiceAdjustmentHistory, Long> {
+public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> {
 }

@@ -3,7 +3,10 @@ package hoanght.posapi.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
+import java.io.Serializable;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -11,7 +14,9 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "categories")
-public class Category {
+@SQLDelete(sql = "UPDATE categories SET deleted = true WHERE id = ?")
+@SQLRestriction("deleted = false")
+public class Category implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -25,6 +30,9 @@ public class Category {
 
     @Column(name = "image_url")
     private String imageUrl;
+
+    @Column(name = "deleted", nullable = false)
+    private Boolean deleted = false;
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Product> products = new LinkedHashSet<>();

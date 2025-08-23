@@ -1,7 +1,7 @@
 package hoanght.posapi.common;
 
 public enum OrderStatus {
-    ACTIVE,     // Đang hoạt động (đang chờ thanh toán)
-    PAID,       // Đã thanh toán
+    PENDING,    // Đang chờ xử lý
+    COMPLETED, // Đã hoàn thành
     CANCELLED   // Đã hủy
 }

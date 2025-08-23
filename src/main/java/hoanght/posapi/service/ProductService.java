@@ -1,19 +1,19 @@
 package hoanght.posapi.service;
 
 import hoanght.posapi.dto.product.ProductCreationRequest;
-import hoanght.posapi.dto.product.ProductResponse;
 import hoanght.posapi.dto.product.ProductUpdateRequest;
+import hoanght.posapi.model.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface ProductService {
-    Page<ProductResponse> findAll(Pageable pageable);
+    Page<Product> findAll(Pageable pageable);
 
-    ProductResponse findProductById(Long productId);
+    Product findById(Long productId);
 
-    ProductResponse createProduct(ProductCreationRequest productCreationRequest);
+    Product create(ProductCreationRequest productCreationRequest);
 
-    ProductResponse updateProduct(Long productId, ProductUpdateRequest productUpdateRequest);
+    Product update(Long productId, ProductUpdateRequest productUpdateRequest);
 
-    void deleteProduct(Long productId);
+    void delete(Long productId);
 }

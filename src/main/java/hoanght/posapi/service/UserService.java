@@ -1,16 +1,16 @@
 package hoanght.posapi.service;
 
-import hoanght.posapi.dto.user.UserResponse;
 import hoanght.posapi.dto.user.UserUpdateRequest;
+import hoanght.posapi.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface UserService {
-    Page<UserResponse> findAll(Pageable pageable);
+    Page<User> findAll(Pageable pageable);
 
-    UserResponse findUserById(Long userId);
+    User findById(Long userId);
 
-    UserResponse updateUser(Long userId, UserUpdateRequest userUpdateRequest);
+    User update(Long userId, UserUpdateRequest userUpdateRequest);
 
-    void deleteUser(Long userId);
+    void delete(Long userId);
 }
