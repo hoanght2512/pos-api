@@ -5,24 +5,27 @@ import hoanght.posapi.common.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLDelete;
 
+import java.io.Serializable;
 import java.util.Set;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "users")
-public class User {
+@SQLDelete(sql = "UPDATE users SET is_enabled = false WHERE id = ?")
+public class User implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Column(name = "username", unique = true)
+    @Column(name = "username", nullable = false, unique = true)
     private String username;
 
     @JsonIgnore
-    @Column(name = "password")
+    @Column(name = "password", nullable = false)
     private String password;
 
     @Column(name = "full_name", nullable = false)

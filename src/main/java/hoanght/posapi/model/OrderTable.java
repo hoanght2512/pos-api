@@ -1,15 +1,24 @@
 package hoanght.posapi.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import hoanght.posapi.common.TableStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
+import java.io.Serializable;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "order_tables")
-public class OrderTable {
+@Table(name = "tables")
+@SQLDelete(sql = "UPDATE tables SET deleted = true WHERE id = ?")
+@SQLRestriction("deleted = false")
+public class OrderTable implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -20,9 +29,12 @@ public class OrderTable {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private TableStatus status;
+    private TableStatus status = TableStatus.AVAILABLE;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
-    private Order order;
+    @Column(name = "deleted", nullable = false)
+    private Boolean deleted = false;
+
+    @OneToMany(mappedBy = "orderTable", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private Set<Order> orders = new LinkedHashSet<>();
 }

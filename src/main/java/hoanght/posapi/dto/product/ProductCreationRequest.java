@@ -16,6 +16,12 @@ public class ProductCreationRequest {
 
     private String sku;
 
+    @NotNull
+    private Boolean countable;
+
+    @Min(0)
+    private Long quantity;
+
     @DecimalMin(value = "0.0")
     private BigDecimal price;
 

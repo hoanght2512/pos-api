@@ -1,13 +1,19 @@
 package hoanght.posapi.model.audit;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.MappedSuperclass;
+import lombok.Getter;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.LastModifiedBy;
 
-import java.util.UUID;
-
+@MappedSuperclass
+@Getter
 public class UserDateAudit extends DateAudit {
     @CreatedBy
-    private UUID createdBy;
+    @Column(name = "created_by", nullable = false, updatable = false)
+    private Long createdBy;
+
     @LastModifiedBy
-    private UUID updatedBy;
+    @Column(name = "updated_by", nullable = false)
+    private Long updatedBy;
 }

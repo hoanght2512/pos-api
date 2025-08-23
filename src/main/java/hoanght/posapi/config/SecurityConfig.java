@@ -1,6 +1,6 @@
 package hoanght.posapi.config;
 
-import hoanght.posapi.filter.JwtRequestFilter;
+import hoanght.posapi.security.JwtRequestFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

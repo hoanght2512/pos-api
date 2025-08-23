@@ -1,19 +1,19 @@
 package hoanght.posapi.service;
 
 import hoanght.posapi.dto.category.CategoryCreationRequest;
-import hoanght.posapi.dto.category.CategoryResponse;
 import hoanght.posapi.dto.category.CategoryUpdateRequest;
+import hoanght.posapi.model.Category;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface CategoryService {
-    Page<CategoryResponse> findAll(Pageable pageable);
+    Page<Category> findAll(Pageable pageable);
 
-    CategoryResponse findCategoryById(Long categoryId);
+    Category findById(Long categoryId);
 
-    CategoryResponse createCategory(CategoryCreationRequest categoryCreationRequest);
+    Category create(CategoryCreationRequest categoryCreationRequest);
 
-    CategoryResponse updateCategory(Long categoryId, CategoryUpdateRequest categoryUpdateRequest);
+    Category update(Long categoryId, CategoryUpdateRequest categoryUpdateRequest);
 
-    void deleteCategory(Long categoryId);
+    void delete(Long categoryId);
 }

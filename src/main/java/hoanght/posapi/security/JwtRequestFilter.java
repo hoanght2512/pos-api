@@ -1,6 +1,5 @@
-package hoanght.posapi.filter;
+package hoanght.posapi.security;
 
-import hoanght.posapi.util.JwtProvider;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,7 +36,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             try {
                 username = jwtProvider.extractUsername(jwt);
             } catch (Exception e) {
-                logger.error("Error parsing JWT: " + e.getMessage());
+                logger.debug("Error parsing JWT: " + e.getMessage());
             }
         }
 

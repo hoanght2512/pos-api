@@ -4,15 +4,14 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "order_items")
-public class OrderItem {
+@Table(name = "order_details")
+public class OrderDetail implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -26,12 +25,12 @@ public class OrderItem {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @Column(name = "note")
+    private String note;
+
     @Column(name = "quantity", nullable = false)
-    private int quantity;
+    private Long quantity;
 
     @Column(name = "price_at_order", nullable = false)
     private BigDecimal priceAtOrder;
-
-    @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<OrderItemOption> orderItemOptions = new LinkedHashSet<>();
 }

@@ -1,6 +1,6 @@
 package hoanght.posapi.config;
 
-import hoanght.posapi.util.JwtProvider;
+import hoanght.posapi.security.JwtProvider;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
