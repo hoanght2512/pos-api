@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 
 @Data
@@ -23,10 +22,4 @@ public class OrderDetailResponse {
     private String note;
     @JsonProperty("price")
     private BigDecimal priceAtOrder;
-
-    @Data
-    public static class OrderDetailProductResponse implements Serializable {
-        private Long id;
-        private String name;
-    }
 }

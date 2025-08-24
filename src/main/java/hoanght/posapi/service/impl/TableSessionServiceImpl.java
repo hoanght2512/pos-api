@@ -4,6 +4,8 @@ import hoanght.posapi.assembler.TableSessionAssembler;
 import hoanght.posapi.common.OrderStatus;
 import hoanght.posapi.common.TableStatus;
 import hoanght.posapi.dto.tablesession.AddProductsRequest;
+import hoanght.posapi.dto.orderdetail.OrderDetailCreationItem;
+import hoanght.posapi.dto.orderdetail.OrderDetailSplitItem;
 import hoanght.posapi.dto.tablesession.SplitRequest;
 import hoanght.posapi.exception.BadRequestException;
 import hoanght.posapi.exception.NotFoundException;
@@ -24,7 +26,9 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -36,6 +40,30 @@ public class TableSessionServiceImpl implements TableSessionService {
     private final InventoryService inventoryService;
     private final SimpMessagingTemplate messagingTemplate;
     private final TableSessionAssembler tableSessionAssembler;
+
+    private void sendTableSessionUpdate(OrderTable orderTable) {
+        messagingTemplate.convertAndSend("/topic/table-sessions", tableSessionAssembler.toModel(orderTable));
+    }
+
+    private void addOrUpdateDetail(Order order, Product product, Long quantity, String note) {
+        OrderDetail orderDetail = order.getOrderDetails().stream()
+                .filter(od -> od.getProduct().getId().equals(product.getId()) &&
+                        od.getPriceAtOrder().compareTo(product.getPrice()) == 0 &&
+                        Objects.equals(od.getNote(), note))
+                .findFirst()
+                .orElseGet(() -> {
+                    OrderDetail newDetail = new OrderDetail();
+                    newDetail.setOrder(order);
+                    newDetail.setProduct(product);
+                    newDetail.setPriceAtOrder(product.getPrice());
+                    newDetail.setQuantity(0L);
+                    newDetail.setNote(note);
+                    order.getOrderDetails().add(newDetail);
+                    return newDetail;
+                });
+
+        orderDetail.setQuantity(orderDetail.getQuantity() + quantity);
+    }
 
     @Override
     public Page<OrderTable> getAllTableSessions(Pageable pageable) {
@@ -63,7 +91,7 @@ public class TableSessionServiceImpl implements TableSessionService {
                     return orderRepository.save(newOrder);
                 });
 
-        for (AddProductsRequest.Item item : orderRequest.getItems()) {
+        for (OrderDetailCreationItem item : orderRequest.getItems()) {
             Product product = productRepository.findById(item.getProductId())
                     .orElseThrow(() -> new NotFoundException("Product not found with ID: " + item.getProductId()));
 
@@ -74,35 +102,19 @@ public class TableSessionServiceImpl implements TableSessionService {
                 inventoryService.updateProductStock(item.getProductId(), -item.getQuantity());
             }
 
-            OrderDetail orderDetail = order.getOrderDetails().stream()
-                    .filter(od -> od.getProduct().getId().equals(product.getId()) &&
-                            od.getPriceAtOrder().compareTo(product.getPrice()) == 0 &&
-                            Objects.equals(od.getNote(), item.getNote()))
-                    .findFirst()
-                    .orElseGet(() -> {
-                        OrderDetail newDetail = new OrderDetail();
-                        newDetail.setOrder(order);
-                        newDetail.setProduct(product);
-                        newDetail.setPriceAtOrder(product.getPrice());
-                        newDetail.setQuantity(0L);
-                        newDetail.setNote(item.getNote());
-                        order.getOrderDetails().add(newDetail);
-                        return newDetail;
-                    });
-
-            orderDetail.setQuantity(orderDetail.getQuantity() + item.getQuantity());
+            addOrUpdateDetail(order, product, item.getQuantity(), item.getNote());
         }
 
-        order.setStatus(OrderStatus.PENDING);
         orderRepository.save(order);
         orderTableRepository.save(orderTable);
 
-        messagingTemplate.convertAndSend("/topic/table-sessions", tableSessionAssembler.toModel(orderTable));
+        sendTableSessionUpdate(orderTable);
 
         return orderTable;
     }
 
     @Override
+    @Transactional
     public OrderTable reserveTableSession(Long tableId) {
         OrderTable orderTable = orderTableRepository.findById(tableId)
                 .orElseThrow(() -> new NotFoundException("Table session not found with ID: " + tableId));
@@ -112,12 +124,14 @@ public class TableSessionServiceImpl implements TableSessionService {
 
         orderTable.setStatus(TableStatus.RESERVED);
         orderTableRepository.save(orderTable);
-        messagingTemplate.convertAndSend("/topic/table-sessions", tableSessionAssembler.toModel(orderTable));
+
+        sendTableSessionUpdate(orderTable);
 
         return orderTable;
     }
 
     @Override
+    @Transactional
     public OrderTable changeTableSession(Long fromTableId, Long toTableId) {
         OrderTable fromTable = orderTableRepository.findById(fromTableId)
                 .orElseThrow(() -> new NotFoundException("Source table session not found with ID: " + fromTableId));
@@ -139,28 +153,116 @@ public class TableSessionServiceImpl implements TableSessionService {
         orderTableRepository.save(fromTable);
         orderTableRepository.save(toTable);
 
-        messagingTemplate.convertAndSend("/topic/table-sessions", tableSessionAssembler.toModel(fromTable));
-        messagingTemplate.convertAndSend("/topic/table-sessions", tableSessionAssembler.toModel(toTable));
+        sendTableSessionUpdate(fromTable);
+        sendTableSessionUpdate(toTable);
 
         return toTable;
     }
 
     @Override
+    @Transactional
     public OrderTable mergeTableSessions(Long fromTableId, Long toTableId) {
-        return null;
+        OrderTable fromTable = orderTableRepository.findById(fromTableId)
+                .orElseThrow(() -> new NotFoundException("Source table session not found with ID: " + fromTableId));
+        OrderTable toTable = orderTableRepository.findById(toTableId)
+                .orElseThrow(() -> new NotFoundException("Destination table session not found with ID: " + toTableId));
+
+        if (fromTable.getStatus() != TableStatus.OCCUPIED)
+            throw new BadRequestException("Source table is not occupied.");
+        if (toTable.getStatus() != TableStatus.OCCUPIED)
+            throw new BadRequestException("Destination table is not occupied.");
+
+        Order fromOrder = orderRepository.getOrderByStatusPending(fromTable.getId())
+                .orElseThrow(() -> new NotFoundException("No pending order found for source table ID: " + fromTableId));
+        Order toOrder = orderRepository.getOrderByStatusPending(toTable.getId())
+                .orElseThrow(() -> new NotFoundException("No pending order found for destination table ID: " + toTableId));
+
+        fromOrder.getOrderDetails().forEach(detail ->
+                addOrUpdateDetail(toOrder, detail.getProduct(), detail.getQuantity(), detail.getNote())
+        );
+
+        orderRepository.save(toOrder);
+        orderRepository.delete(fromOrder);
+
+        fromTable.setStatus(TableStatus.AVAILABLE);
+        orderTableRepository.save(fromTable);
+
+        sendTableSessionUpdate(fromTable);
+        sendTableSessionUpdate(toTable);
+
+        return toTable;
     }
 
     @Override
+    @Transactional
     public OrderTable splitTableSession(Long fromTableId, Long toTableId, SplitRequest splitRequest) {
-        return null;
+        OrderTable fromTable = orderTableRepository.findById(fromTableId)
+                .orElseThrow(() -> new NotFoundException("Source table session not found with ID: " + fromTableId));
+        OrderTable toTable = orderTableRepository.findById(toTableId)
+                .orElseThrow(() -> new NotFoundException("Destination table session not found with ID: " + toTableId));
+
+        if (fromTable.getStatus() != TableStatus.OCCUPIED)
+            throw new BadRequestException("Source table is not occupied.");
+
+        Order fromOrder = orderRepository.getOrderByStatusPending(fromTable.getId())
+                .orElseThrow(() -> new NotFoundException("No pending order found for source table ID: " + fromTableId));
+
+        Order toOrder = orderRepository.getOrderByStatusPending(toTable.getId())
+                .orElseGet(() -> {
+                    toTable.setStatus(TableStatus.OCCUPIED);
+                    Order newOrder = new Order();
+                    newOrder.setStatus(OrderStatus.PENDING);
+                    newOrder.setOrderTable(toTable);
+                    return orderRepository.save(newOrder);
+                });
+
+        Map<Long, OrderDetail> fromOrderDetailsMap = fromOrder.getOrderDetails().stream()
+                .collect(Collectors.toMap(OrderDetail::getId, od -> od));
+
+        for (OrderDetailSplitItem item : splitRequest.getDetails()) {
+            OrderDetail fromDetail = fromOrderDetailsMap.get(item.getOrderDetailId());
+            if (fromDetail == null)
+                throw new NotFoundException("Order detail not found with ID: " + item.getOrderDetailId());
+
+            if (item.getQuantity() > fromDetail.getQuantity())
+                throw new BadRequestException("Cannot move more than existing quantity for detail ID: " + item.getOrderDetailId());
+
+            addOrUpdateDetail(toOrder, fromDetail.getProduct(), item.getQuantity(), fromDetail.getNote());
+
+            fromDetail.setQuantity(fromDetail.getQuantity() - item.getQuantity());
+        }
+
+        fromOrder.getOrderDetails().removeIf(od -> od.getQuantity() == 0);
+
+        orderRepository.save(toOrder);
+        orderRepository.save(fromOrder);
+
+        if (fromOrder.getOrderDetails().isEmpty()) {
+            fromTable.setStatus(TableStatus.AVAILABLE);
+            orderRepository.delete(fromOrder);
+        }
+
+        orderTableRepository.save(fromTable);
+        orderTableRepository.save(toTable);
+
+        sendTableSessionUpdate(fromTable);
+        sendTableSessionUpdate(toTable);
+
+        return toTable;
     }
 
     @Override
+    @Transactional
     public OrderTable checkoutTableSession(Long tableId) {
-        return null;
+        OrderTable orderTable = orderTableRepository.findById(tableId)
+                .orElseThrow(() -> new NotFoundException("Table session not found with ID: " + tableId));
+
+        sendTableSessionUpdate(orderTable);
+        return orderTable;
     }
 
     @Override
+    @Transactional
     public OrderTable cancelTableSession(Long tableId) {
         OrderTable orderTable = orderTableRepository.findById(tableId)
                 .orElseThrow(() -> new NotFoundException("Table session not found with ID: " + tableId));
@@ -179,7 +281,8 @@ public class TableSessionServiceImpl implements TableSessionService {
         orderRepository.save(order);
         orderTable.setStatus(TableStatus.AVAILABLE);
         orderTableRepository.save(orderTable);
-        messagingTemplate.convertAndSend("/topic/table-sessions", tableSessionAssembler.toModel(orderTable));
+
+        sendTableSessionUpdate(orderTable);
 
         return orderTable;
     }
