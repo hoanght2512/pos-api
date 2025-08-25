@@ -1,5 +1,5 @@
 package hoanght.posapi.service;
 
 public interface InventoryService {
-    void updateProductStock(long productId, long quantityChange);
+    void adjustInventory(Long productId, Long quantityChange);
 }

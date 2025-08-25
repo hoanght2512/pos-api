@@ -22,6 +22,10 @@ public class Category implements Serializable {
     @Column(name = "id", nullable = false)
     private Long id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "name", nullable = false)
     private String name;
 
@@ -34,6 +38,6 @@ public class Category implements Serializable {
     @Column(name = "deleted", nullable = false)
     private Boolean deleted = false;
 
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "category")
     private Set<Product> products = new LinkedHashSet<>();
 }

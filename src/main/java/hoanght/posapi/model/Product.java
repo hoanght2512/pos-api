@@ -22,6 +22,10 @@ public class Product implements Serializable {
     @Column(name = "id", nullable = false)
     private Long id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "name", nullable = false)
     private String name;
 
@@ -31,23 +35,23 @@ public class Product implements Serializable {
     @Column(name = "price", nullable = false)
     private BigDecimal price;
 
-    @Column(name = "countable", nullable = false)
-    private Boolean countable = false;
-
     @Column(name = "description")
     private String description;
 
     @Column(name = "image_url")
     private String imageUrl;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @Column(name = "countable", nullable = false)
+    private Boolean countable = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
     @Column(name = "deleted", nullable = false)
     private Boolean deleted = false;
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "inventory_id")
     @JsonManagedReference
     private Inventory inventory;

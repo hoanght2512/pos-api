@@ -38,4 +38,14 @@ public class Invoice extends UserDateAudit implements Serializable {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod;
+
+    public void calculateTotalAmount() {
+        if (order != null && !order.getOrderDetails().isEmpty()) {
+            this.totalAmount = order.getOrderDetails().stream()
+                    .map(od -> od.getPriceAtOrder().multiply(BigDecimal.valueOf(od.getQuantity())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            return;
+        }
+        this.totalAmount = BigDecimal.ZERO;
+    }
 }

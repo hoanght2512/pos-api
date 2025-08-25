@@ -1,18 +1,19 @@
 package hoanght.posapi.service.impl;
 
 import hoanght.posapi.assembler.TableSessionAssembler;
+import hoanght.posapi.common.InvoiceStatus;
 import hoanght.posapi.common.OrderStatus;
+import hoanght.posapi.common.PaymentMethod;
 import hoanght.posapi.common.TableStatus;
-import hoanght.posapi.dto.tablesession.AddProductsRequest;
 import hoanght.posapi.dto.orderdetail.OrderDetailCreationItem;
 import hoanght.posapi.dto.orderdetail.OrderDetailSplitItem;
+import hoanght.posapi.dto.print.PrintTicket;
+import hoanght.posapi.dto.tablesession.AddProductsRequest;
 import hoanght.posapi.dto.tablesession.SplitRequest;
 import hoanght.posapi.exception.BadRequestException;
 import hoanght.posapi.exception.NotFoundException;
-import hoanght.posapi.model.Order;
-import hoanght.posapi.model.OrderDetail;
-import hoanght.posapi.model.OrderTable;
-import hoanght.posapi.model.Product;
+import hoanght.posapi.model.*;
+import hoanght.posapi.repository.jpa.InvoiceRepository;
 import hoanght.posapi.repository.jpa.OrderRepository;
 import hoanght.posapi.repository.jpa.OrderTableRepository;
 import hoanght.posapi.repository.jpa.ProductRepository;
@@ -26,6 +27,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -37,12 +40,18 @@ public class TableSessionServiceImpl implements TableSessionService {
     private final OrderTableRepository orderTableRepository;
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final InvoiceRepository invoiceRepository;
     private final InventoryService inventoryService;
     private final SimpMessagingTemplate messagingTemplate;
     private final TableSessionAssembler tableSessionAssembler;
 
     private void sendTableSessionUpdate(OrderTable orderTable) {
         messagingTemplate.convertAndSend("/topic/table-sessions", tableSessionAssembler.toModel(orderTable));
+    }
+
+    private void sendPrintTickets(List<PrintTicket> tickets) {
+        if (tickets.isEmpty()) return;
+        messagingTemplate.convertAndSend("/topic/print-tickets", tickets);
     }
 
     private void addOrUpdateDetail(Order order, Product product, Long quantity, String note) {
@@ -91,24 +100,37 @@ public class TableSessionServiceImpl implements TableSessionService {
                     return orderRepository.save(newOrder);
                 });
 
-        for (OrderDetailCreationItem item : orderRequest.getItems()) {
-            Product product = productRepository.findById(item.getProductId())
-                    .orElseThrow(() -> new NotFoundException("Product not found with ID: " + item.getProductId()));
+        List<Long> productIds = orderRequest.getItems().stream().map(OrderDetailCreationItem::getProductId).toList();
+        Map<Long, Product> productsMap = productRepository.findAllById(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, p -> p));
 
-            if (product.getCountable()) {
-                long stock = product.getInventory().getQuantity();
-                if (item.getQuantity() > stock)
-                    throw new BadRequestException("Insufficient stock for product: " + product.getName());
-                inventoryService.updateProductStock(item.getProductId(), -item.getQuantity());
+        for (OrderDetailCreationItem item : orderRequest.getItems()) {
+            if (!productsMap.containsKey(item.getProductId())) {
+                throw new NotFoundException("Product not found with ID: " + item.getProductId());
+            }
+        }
+
+        List<PrintTicket> printTickets = new ArrayList<>();
+
+        for (OrderDetailCreationItem item : orderRequest.getItems()) {
+            Product product = productsMap.get(item.getProductId());
+
+            if (product.getInventory() != null) {
+                inventoryService.adjustInventory(product.getId(), -item.getQuantity());
             }
 
             addOrUpdateDetail(order, product, item.getQuantity(), item.getNote());
+
+            PrintTicket ticket = PrintTicket.builder()
+                    .content(product.getName())
+                    .quantity(item.getQuantity())
+                    .note(item.getNote())
+                    .build();
+            printTickets.add(ticket);
         }
 
-        orderRepository.save(order);
-        orderTableRepository.save(orderTable);
-
         sendTableSessionUpdate(orderTable);
+        sendPrintTickets(printTickets);
 
         return orderTable;
     }
@@ -253,12 +275,35 @@ public class TableSessionServiceImpl implements TableSessionService {
 
     @Override
     @Transactional
-    public OrderTable checkoutTableSession(Long tableId) {
+    public Invoice checkoutTableSession(Long tableId, PaymentMethod paymentMethod) {
         OrderTable orderTable = orderTableRepository.findById(tableId)
                 .orElseThrow(() -> new NotFoundException("Table session not found with ID: " + tableId));
 
+        if (orderTable.getStatus() != TableStatus.OCCUPIED)
+            throw new BadRequestException("Table is not occupied.");
+
+        Order order = orderRepository.getOrderByStatusPending(orderTable.getId())
+                .orElseThrow(() -> new NotFoundException("No pending order found for table ID: " + tableId));
+
+        if (order.getOrderDetails().isEmpty())
+            throw new BadRequestException("Cannot checkout an order with no items.");
+
+        Invoice invoice = new Invoice();
+        invoice.setOrderTable(orderTable);
+        invoice.setOrder(order);
+        invoice.setStatus(InvoiceStatus.PAID);
+        invoice.setPaymentMethod(paymentMethod);
+        invoice.calculateTotalAmount();
+
+        invoiceRepository.save(invoice);
+        order.setStatus(OrderStatus.COMPLETED);
+        orderRepository.save(order);
+        orderTable.setStatus(TableStatus.AVAILABLE);
+        orderTableRepository.save(orderTable);
+
         sendTableSessionUpdate(orderTable);
-        return orderTable;
+
+        return invoice;
     }
 
     @Override
@@ -274,7 +319,7 @@ public class TableSessionServiceImpl implements TableSessionService {
 
         for (OrderDetail detail : order.getOrderDetails()) {
             if (detail.getProduct().getCountable())
-                inventoryService.updateProductStock(detail.getProduct().getId(), detail.getQuantity());
+                inventoryService.adjustInventory(detail.getProduct().getId(), detail.getQuantity());
         }
 
         order.setStatus(OrderStatus.CANCELLED);

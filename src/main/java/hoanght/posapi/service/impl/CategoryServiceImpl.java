@@ -52,16 +52,8 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
-    @Caching(
-            put = {
-                    @CachePut(value = "category", key = "#categoryId")
-            },
-            evict = {
-                    @CacheEvict(value = "categories", allEntries = true),
-                    @CacheEvict(value = "products", allEntries = true),
-                    @CacheEvict(value = "product", allEntries = true)
-            }
-    )
+    @CachePut(value = "category", key = "#categoryId")
+    @CacheEvict(value = "categories", allEntries = true)
     public Category update(Long categoryId, CategoryUpdateRequest categoryUpdateRequest) {
         Category existingCategory = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new NotFoundException("Category with ID " + categoryId + " not found"));
@@ -82,9 +74,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "category", key = "#categoryId"),
-            @CacheEvict(value = "categories", allEntries = true),
-            @CacheEvict(value = "products", allEntries = true),
-            @CacheEvict(value = "product", allEntries = true)
+            @CacheEvict(value = "categories", allEntries = true)
     })
     public void delete(Long categoryId) {
         if (!categoryRepository.existsById(categoryId)) {
