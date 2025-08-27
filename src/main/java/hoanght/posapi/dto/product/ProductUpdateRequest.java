@@ -2,7 +2,6 @@ package hoanght.posapi.dto.product;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Min;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -17,8 +16,8 @@ public class ProductUpdateRequest {
 
     private Boolean countable;
 
-    @Min(0)
-    private Long quantity;
+    @DecimalMin("0.1")
+    private BigDecimal quantity;
 
     @DecimalMin("0.0")
     private BigDecimal price;

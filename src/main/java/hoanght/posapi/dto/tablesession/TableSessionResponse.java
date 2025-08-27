@@ -1,6 +1,7 @@
 package hoanght.posapi.dto.tablesession;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import hoanght.posapi.common.TableStatus;
 import hoanght.posapi.dto.order.OrderResponse;
 import hoanght.posapi.dto.ordertable.OrderTableResponse;
@@ -9,6 +10,7 @@ import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
+@JsonPropertyOrder({"id", "name", "status", "order"})
 public class TableSessionResponse extends OrderTableResponse {
     private TableStatus status;
     @JsonProperty("order")

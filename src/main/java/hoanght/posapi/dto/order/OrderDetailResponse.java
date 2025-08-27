@@ -21,8 +21,8 @@ public class OrderDetailResponse extends RepresentationModel<OrderDetailResponse
     private Long id;
     @JsonProperty("product")
     private OrderDetailProductResponse product;
-    private Long quantity;
+    private BigDecimal quantity;
     private String note;
     @JsonProperty("price")
-    private BigDecimal priceAtOrder;
+    private BigDecimal price;
 }

@@ -3,10 +3,12 @@ package hoanght.posapi.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import hoanght.posapi.model.audit.DateAudit;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Digits;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -27,6 +29,7 @@ public class Inventory extends DateAudit implements Serializable {
     @JsonBackReference
     private Product product;
 
+    @Digits(integer = 10, fraction = 3)
     @Column(name = "quantity", nullable = false)
-    private Long quantity;
+    private BigDecimal quantity;
 }

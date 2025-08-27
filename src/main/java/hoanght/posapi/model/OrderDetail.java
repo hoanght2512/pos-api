@@ -1,8 +1,11 @@
 package hoanght.posapi.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -11,6 +14,9 @@ import java.math.BigDecimal;
 @Setter
 @Entity
 @Table(name = "order_details")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class OrderDetail implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,9 +38,11 @@ public class OrderDetail implements Serializable {
     @Column(name = "note")
     private String note;
 
+    @Digits(integer = 10, fraction = 3)
     @Column(name = "quantity", nullable = false)
-    private Long quantity;
+    private BigDecimal quantity;
 
-    @Column(name = "price_at_order", nullable = false)
-    private BigDecimal priceAtOrder;
+    @Digits(integer = 10, fraction = 3)
+    @Column(name = "price", nullable = false)
+    private BigDecimal price;
 }

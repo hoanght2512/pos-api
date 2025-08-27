@@ -27,10 +27,10 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -54,26 +54,6 @@ public class TableSessionServiceImpl implements TableSessionService {
         messagingTemplate.convertAndSend("/topic/print-tickets", tickets);
     }
 
-    private void addOrUpdateDetail(Order order, Product product, Long quantity, String note) {
-        OrderDetail orderDetail = order.getOrderDetails().stream()
-                .filter(od -> od.getProduct().getId().equals(product.getId()) &&
-                        od.getPriceAtOrder().compareTo(product.getPrice()) == 0 &&
-                        Objects.equals(od.getNote(), note))
-                .findFirst()
-                .orElseGet(() -> {
-                    OrderDetail newDetail = new OrderDetail();
-                    newDetail.setOrder(order);
-                    newDetail.setProduct(product);
-                    newDetail.setPriceAtOrder(product.getPrice());
-                    newDetail.setQuantity(0L);
-                    newDetail.setNote(note);
-                    order.getOrderDetails().add(newDetail);
-                    return newDetail;
-                });
-
-        orderDetail.setQuantity(orderDetail.getQuantity() + quantity);
-    }
-
     @Override
     public Page<OrderTable> getAllTableSessions(Pageable pageable) {
         return orderTableRepository.findAll(pageable);
@@ -91,7 +71,7 @@ public class TableSessionServiceImpl implements TableSessionService {
         OrderTable orderTable = orderTableRepository.findById(tableId)
                 .orElseThrow(() -> new NotFoundException("Table session not found with ID: " + tableId));
 
-        Order order = orderRepository.getOrderByStatusPending(orderTable.getId())
+        Order order = orderRepository.getOrderByStatusPendingForUpdate(tableId)
                 .orElseGet(() -> {
                     orderTable.setStatus(TableStatus.OCCUPIED);
                     Order newOrder = new Order();
@@ -116,10 +96,10 @@ public class TableSessionServiceImpl implements TableSessionService {
             Product product = productsMap.get(item.getProductId());
 
             if (product.getInventory() != null) {
-                inventoryService.adjustInventory(product.getId(), -item.getQuantity());
+                inventoryService.adjustInventory(product.getId(), item.getQuantity().negate());
             }
 
-            addOrUpdateDetail(order, product, item.getQuantity(), item.getNote());
+            order.addProduct(product, item.getQuantity(), item.getNote());
 
             PrintTicket ticket = PrintTicket.builder()
                     .content(product.getName())
@@ -145,8 +125,6 @@ public class TableSessionServiceImpl implements TableSessionService {
             throw new BadRequestException("Table is not available for reservation.");
 
         orderTable.setStatus(TableStatus.RESERVED);
-        orderTableRepository.save(orderTable);
-
         sendTableSessionUpdate(orderTable);
 
         return orderTable;
@@ -165,15 +143,12 @@ public class TableSessionServiceImpl implements TableSessionService {
         if (toTable.getStatus() != TableStatus.AVAILABLE)
             throw new BadRequestException("Destination table is not available.");
 
-        Order order = orderRepository.getOrderByStatusPending(fromTable.getId())
+        Order order = orderRepository.getOrderByStatusPendingForUpdate(fromTable.getId())
                 .orElseThrow(() -> new NotFoundException("No pending order found for source table ID: " + fromTableId));
 
         order.setOrderTable(toTable);
-        orderRepository.save(order);
         fromTable.setStatus(TableStatus.AVAILABLE);
         toTable.setStatus(TableStatus.OCCUPIED);
-        orderTableRepository.save(fromTable);
-        orderTableRepository.save(toTable);
 
         sendTableSessionUpdate(fromTable);
         sendTableSessionUpdate(toTable);
@@ -194,20 +169,15 @@ public class TableSessionServiceImpl implements TableSessionService {
         if (toTable.getStatus() != TableStatus.OCCUPIED)
             throw new BadRequestException("Destination table is not occupied.");
 
-        Order fromOrder = orderRepository.getOrderByStatusPending(fromTable.getId())
+        Order fromOrder = orderRepository.getOrderByStatusPendingForUpdate(fromTable.getId())
                 .orElseThrow(() -> new NotFoundException("No pending order found for source table ID: " + fromTableId));
-        Order toOrder = orderRepository.getOrderByStatusPending(toTable.getId())
+        Order toOrder = orderRepository.getOrderByStatusPendingForUpdate(toTable.getId())
                 .orElseThrow(() -> new NotFoundException("No pending order found for destination table ID: " + toTableId));
 
-        fromOrder.getOrderDetails().forEach(detail ->
-                addOrUpdateDetail(toOrder, detail.getProduct(), detail.getQuantity(), detail.getNote())
-        );
+        fromOrder.getOrderDetails().forEach(d -> toOrder.addProduct(d.getProduct(), d.getQuantity(), d.getNote()));
 
-        orderRepository.save(toOrder);
         orderRepository.delete(fromOrder);
-
         fromTable.setStatus(TableStatus.AVAILABLE);
-        orderTableRepository.save(fromTable);
 
         sendTableSessionUpdate(fromTable);
         sendTableSessionUpdate(toTable);
@@ -226,10 +196,10 @@ public class TableSessionServiceImpl implements TableSessionService {
         if (fromTable.getStatus() != TableStatus.OCCUPIED)
             throw new BadRequestException("Source table is not occupied.");
 
-        Order fromOrder = orderRepository.getOrderByStatusPending(fromTable.getId())
+        Order fromOrder = orderRepository.getOrderByStatusPendingForUpdate(fromTable.getId())
                 .orElseThrow(() -> new NotFoundException("No pending order found for source table ID: " + fromTableId));
 
-        Order toOrder = orderRepository.getOrderByStatusPending(toTable.getId())
+        Order toOrder = orderRepository.getOrderByStatusPendingForUpdate(toTable.getId())
                 .orElseGet(() -> {
                     toTable.setStatus(TableStatus.OCCUPIED);
                     Order newOrder = new Order();
@@ -246,26 +216,19 @@ public class TableSessionServiceImpl implements TableSessionService {
             if (fromDetail == null)
                 throw new NotFoundException("Order detail not found with ID: " + item.getOrderDetailId());
 
-            if (item.getQuantity() > fromDetail.getQuantity())
+            if (item.getQuantity().compareTo(fromDetail.getQuantity()) > 0)
                 throw new BadRequestException("Cannot move more than existing quantity for detail ID: " + item.getOrderDetailId());
 
-            addOrUpdateDetail(toOrder, fromDetail.getProduct(), item.getQuantity(), fromDetail.getNote());
-
-            fromDetail.setQuantity(fromDetail.getQuantity() - item.getQuantity());
+            toOrder.addProduct(fromDetail.getProduct(), item.getQuantity(), fromDetail.getNote());
+            fromDetail.setQuantity(fromDetail.getQuantity().subtract(item.getQuantity()));
         }
 
-        fromOrder.getOrderDetails().removeIf(od -> od.getQuantity() == 0);
-
-        orderRepository.save(toOrder);
-        orderRepository.save(fromOrder);
+        fromOrder.getOrderDetails().removeIf(od -> od.getQuantity().compareTo(BigDecimal.ZERO) == 0);
 
         if (fromOrder.getOrderDetails().isEmpty()) {
             fromTable.setStatus(TableStatus.AVAILABLE);
             orderRepository.delete(fromOrder);
         }
-
-        orderTableRepository.save(fromTable);
-        orderTableRepository.save(toTable);
 
         sendTableSessionUpdate(fromTable);
         sendTableSessionUpdate(toTable);
@@ -282,7 +245,7 @@ public class TableSessionServiceImpl implements TableSessionService {
         if (orderTable.getStatus() != TableStatus.OCCUPIED)
             throw new BadRequestException("Table is not occupied.");
 
-        Order order = orderRepository.getOrderByStatusPending(orderTable.getId())
+        Order order = orderRepository.getOrderByStatusPendingForUpdate(orderTable.getId())
                 .orElseThrow(() -> new NotFoundException("No pending order found for table ID: " + tableId));
 
         if (order.getOrderDetails().isEmpty())
@@ -293,13 +256,12 @@ public class TableSessionServiceImpl implements TableSessionService {
         invoice.setOrder(order);
         invoice.setStatus(InvoiceStatus.PAID);
         invoice.setPaymentMethod(paymentMethod);
-        invoice.calculateTotalAmount();
+        invoice.setTotalAmount(order.getTotalAmount());
 
         invoiceRepository.save(invoice);
+
         order.setStatus(OrderStatus.COMPLETED);
-        orderRepository.save(order);
         orderTable.setStatus(TableStatus.AVAILABLE);
-        orderTableRepository.save(orderTable);
 
         sendTableSessionUpdate(orderTable);
 
@@ -314,7 +276,7 @@ public class TableSessionServiceImpl implements TableSessionService {
         if (orderTable.getStatus() == TableStatus.AVAILABLE)
             throw new BadRequestException("Table is already available.");
 
-        Order order = orderRepository.getOrderByStatusPending(orderTable.getId())
+        Order order = orderRepository.getOrderByStatusPendingForUpdate(orderTable.getId())
                 .orElseThrow(() -> new NotFoundException("No pending order found for table ID: " + tableId));
 
         for (OrderDetail detail : order.getOrderDetails()) {
@@ -323,9 +285,7 @@ public class TableSessionServiceImpl implements TableSessionService {
         }
 
         order.setStatus(OrderStatus.CANCELLED);
-        orderRepository.save(order);
         orderTable.setStatus(TableStatus.AVAILABLE);
-        orderTableRepository.save(orderTable);
 
         sendTableSessionUpdate(orderTable);
 

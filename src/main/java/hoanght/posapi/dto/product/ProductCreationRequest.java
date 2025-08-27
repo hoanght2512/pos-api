@@ -19,8 +19,8 @@ public class ProductCreationRequest {
     @NotNull
     private Boolean countable;
 
-    @Min(0)
-    private Long quantity;
+    @DecimalMin("0.1")
+    private BigDecimal quantity;
 
     @DecimalMin(value = "0.0")
     private BigDecimal price;

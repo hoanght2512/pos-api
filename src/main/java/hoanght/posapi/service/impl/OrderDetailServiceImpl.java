@@ -33,27 +33,34 @@ public class OrderDetailServiceImpl implements OrderDetailService {
         return orderDetail;
     }
 
+    private boolean isReduction(OrderDetailUpdateRequest request, OrderDetail orderDetail, BigDecimal quantityDifference) {
+        BigDecimal newPrice = request.getPrice();
+        boolean isReducing = quantityDifference.compareTo(BigDecimal.ZERO) < 0
+                || (newPrice != null && newPrice.compareTo(orderDetail.getPrice()) < 0);
+
+        return isReducing && (request.getReason() == null || request.getReason().isBlank());
+    }
+
     @Override
     @Transactional
     public OrderDetail updateOrderDetail(Long orderDetailId, OrderDetailUpdateRequest request) {
         OrderDetail orderDetail = findAndValidateOrderDetail(orderDetailId);
         Product product = orderDetail.getProduct();
-        long oldQuantity = orderDetail.getQuantity();
-        Long newQuantity = request.getQuantity();
 
-        long quantityDifference = (newQuantity != null ? newQuantity : oldQuantity) - oldQuantity;
+        BigDecimal oldQuantity = orderDetail.getQuantity();
+        BigDecimal newQuantity = Optional.ofNullable(request.getQuantity()).orElse(oldQuantity);
+        BigDecimal quantityDifference = newQuantity.subtract(oldQuantity);
 
-        BigDecimal newPrice = request.getPrice();
-        boolean isReducing = (quantityDifference < 0) || (newPrice != null && newPrice.compareTo(orderDetail.getPriceAtOrder()) < 0);
-        if (isReducing && (request.getReason() == null || request.getReason().isBlank()))
-            throw new BadRequestException("Reason is required when reducing quantity or price.");
+        if (isReduction(request, orderDetail, quantityDifference)) {
+            throw new BadRequestException("A reason must be provided when reducing quantity or price.");
+        }
 
-        if (product.getCountable() && quantityDifference != 0) {
-            inventoryService.adjustInventory(product.getId(), -quantityDifference);
+        if (product.getCountable() && quantityDifference.compareTo(BigDecimal.ZERO) != 0) {
+            inventoryService.adjustInventory(product.getId(), quantityDifference.negate());
         }
 
         Optional.ofNullable(request.getQuantity()).ifPresent(orderDetail::setQuantity);
-        Optional.ofNullable(request.getPrice()).ifPresent(orderDetail::setPriceAtOrder);
+        Optional.ofNullable(request.getPrice()).ifPresent(orderDetail::setPrice);
         Optional.ofNullable(request.getNote()).ifPresent(orderDetail::setNote);
 
         return orderDetailRepository.save(orderDetail);
@@ -63,13 +70,10 @@ public class OrderDetailServiceImpl implements OrderDetailService {
     @Transactional
     public void deleteOrderDetail(Long orderDetailId) {
         OrderDetail orderDetail = findAndValidateOrderDetail(orderDetailId);
-        Order order = orderDetail.getOrder();
         Product product = orderDetail.getProduct();
 
         if (product.getCountable())
             inventoryService.adjustInventory(product.getId(), orderDetail.getQuantity());
-
-        order.getOrderDetails().remove(orderDetail);
 
         orderDetailRepository.delete(orderDetail);
     }

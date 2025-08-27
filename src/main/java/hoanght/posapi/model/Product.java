@@ -2,6 +2,7 @@ package hoanght.posapi.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Digits;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.SQLDelete;
@@ -32,6 +33,7 @@ public class Product implements Serializable {
     @Column(name = "sku", unique = true)
     private String sku;
 
+    @Digits(integer = 10, fraction = 3)
     @Column(name = "price", nullable = false)
     private BigDecimal price;
 

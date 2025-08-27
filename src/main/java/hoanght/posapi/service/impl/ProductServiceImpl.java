@@ -22,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 @Slf4j
@@ -66,7 +67,7 @@ public class ProductServiceImpl implements ProductService {
         if (productCreationRequest.getCountable()) {
             Inventory newInventory = new Inventory();
             newInventory.setProduct(product);
-            newInventory.setQuantity(productCreationRequest.getQuantity() != null ? productCreationRequest.getQuantity() : 0L);
+            newInventory.setQuantity(productCreationRequest.getQuantity() != null ? productCreationRequest.getQuantity() : BigDecimal.ZERO);
             product.setInventory(newInventory);
         }
 
@@ -108,7 +109,7 @@ public class ProductServiceImpl implements ProductService {
             if (productUpdateRequest.getCountable() && existingProduct.getInventory() == null) {
                 Inventory newInventory = new Inventory();
                 newInventory.setProduct(existingProduct);
-                newInventory.setQuantity(productUpdateRequest.getQuantity() != null ? productUpdateRequest.getQuantity() : 0L);
+                newInventory.setQuantity(productUpdateRequest.getQuantity() != null ? productUpdateRequest.getQuantity() : BigDecimal.ZERO);
                 existingProduct.setInventory(newInventory);
             } else if (!productUpdateRequest.getCountable()) {
                 existingProduct.setInventory(null);

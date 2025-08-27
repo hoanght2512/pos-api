@@ -4,6 +4,7 @@ import hoanght.posapi.common.InvoiceStatus;
 import hoanght.posapi.common.PaymentMethod;
 import hoanght.posapi.model.audit.UserDateAudit;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Digits;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -28,6 +29,7 @@ public class Invoice extends UserDateAudit implements Serializable {
     @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;
 
+    @Digits(integer = 10, fraction = 3)
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
 
@@ -38,14 +40,4 @@ public class Invoice extends UserDateAudit implements Serializable {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod;
-
-    public void calculateTotalAmount() {
-        if (order != null && !order.getOrderDetails().isEmpty()) {
-            this.totalAmount = order.getOrderDetails().stream()
-                    .map(od -> od.getPriceAtOrder().multiply(BigDecimal.valueOf(od.getQuantity())))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            return;
-        }
-        this.totalAmount = BigDecimal.ZERO;
-    }
 }
