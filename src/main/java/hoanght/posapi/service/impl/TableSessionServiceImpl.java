@@ -1,6 +1,5 @@
 package hoanght.posapi.service.impl;
 
-import hoanght.posapi.assembler.TableSessionAssembler;
 import hoanght.posapi.common.InvoiceStatus;
 import hoanght.posapi.common.OrderStatus;
 import hoanght.posapi.common.PaymentMethod;
@@ -10,6 +9,8 @@ import hoanght.posapi.dto.orderdetail.OrderDetailSplitItem;
 import hoanght.posapi.dto.print.PrintTicket;
 import hoanght.posapi.dto.tablesession.AddProductsRequest;
 import hoanght.posapi.dto.tablesession.SplitRequest;
+import hoanght.posapi.event.PrintTicketEvent;
+import hoanght.posapi.event.TableSessionUpdatedEvent;
 import hoanght.posapi.exception.BadRequestException;
 import hoanght.posapi.exception.NotFoundException;
 import hoanght.posapi.model.*;
@@ -21,9 +22,9 @@ import hoanght.posapi.service.InventoryService;
 import hoanght.posapi.service.TableSessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,17 +43,7 @@ public class TableSessionServiceImpl implements TableSessionService {
     private final ProductRepository productRepository;
     private final InvoiceRepository invoiceRepository;
     private final InventoryService inventoryService;
-    private final SimpMessagingTemplate messagingTemplate;
-    private final TableSessionAssembler tableSessionAssembler;
-
-    private void sendTableSessionUpdate(OrderTable orderTable) {
-        messagingTemplate.convertAndSend("/topic/table-sessions", tableSessionAssembler.toModel(orderTable));
-    }
-
-    private void sendPrintTickets(List<PrintTicket> tickets) {
-        if (tickets.isEmpty()) return;
-        messagingTemplate.convertAndSend("/topic/print-tickets", tickets);
-    }
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public Page<OrderTable> getAllTableSessions(Pageable pageable) {
@@ -71,11 +62,11 @@ public class TableSessionServiceImpl implements TableSessionService {
         OrderTable orderTable = orderTableRepository.findById(tableId)
                 .orElseThrow(() -> new NotFoundException("Table session not found with ID: " + tableId));
 
-        Order order = orderRepository.getOrderByStatusPendingForUpdate(tableId)
+        Order order = orderRepository.getOrderByStatusInProgressForUpdate(tableId)
                 .orElseGet(() -> {
                     orderTable.setStatus(TableStatus.OCCUPIED);
                     Order newOrder = new Order();
-                    newOrder.setStatus(OrderStatus.PENDING);
+                    newOrder.setStatus(OrderStatus.IN_PROGRESS);
                     newOrder.setOrderTable(orderTable);
                     return orderRepository.save(newOrder);
                 });
@@ -109,8 +100,8 @@ public class TableSessionServiceImpl implements TableSessionService {
             printTickets.add(ticket);
         }
 
-        sendTableSessionUpdate(orderTable);
-        sendPrintTickets(printTickets);
+        eventPublisher.publishEvent(new TableSessionUpdatedEvent(this, orderTable));
+        eventPublisher.publishEvent(new PrintTicketEvent(this, printTickets));
 
         return orderTable;
     }
@@ -125,7 +116,8 @@ public class TableSessionServiceImpl implements TableSessionService {
             throw new BadRequestException("Table is not available for reservation.");
 
         orderTable.setStatus(TableStatus.RESERVED);
-        sendTableSessionUpdate(orderTable);
+
+        eventPublisher.publishEvent(new TableSessionUpdatedEvent(this, orderTable));
 
         return orderTable;
     }
@@ -143,15 +135,15 @@ public class TableSessionServiceImpl implements TableSessionService {
         if (toTable.getStatus() != TableStatus.AVAILABLE)
             throw new BadRequestException("Destination table is not available.");
 
-        Order order = orderRepository.getOrderByStatusPendingForUpdate(fromTable.getId())
+        Order order = orderRepository.getOrderByStatusInProgressForUpdate(fromTable.getId())
                 .orElseThrow(() -> new NotFoundException("No pending order found for source table ID: " + fromTableId));
 
         order.setOrderTable(toTable);
         fromTable.setStatus(TableStatus.AVAILABLE);
         toTable.setStatus(TableStatus.OCCUPIED);
 
-        sendTableSessionUpdate(fromTable);
-        sendTableSessionUpdate(toTable);
+        eventPublisher.publishEvent(new TableSessionUpdatedEvent(this, fromTable));
+        eventPublisher.publishEvent(new TableSessionUpdatedEvent(this, toTable));
 
         return toTable;
     }
@@ -169,9 +161,9 @@ public class TableSessionServiceImpl implements TableSessionService {
         if (toTable.getStatus() != TableStatus.OCCUPIED)
             throw new BadRequestException("Destination table is not occupied.");
 
-        Order fromOrder = orderRepository.getOrderByStatusPendingForUpdate(fromTable.getId())
+        Order fromOrder = orderRepository.getOrderByStatusInProgressForUpdate(fromTable.getId())
                 .orElseThrow(() -> new NotFoundException("No pending order found for source table ID: " + fromTableId));
-        Order toOrder = orderRepository.getOrderByStatusPendingForUpdate(toTable.getId())
+        Order toOrder = orderRepository.getOrderByStatusInProgressForUpdate(toTable.getId())
                 .orElseThrow(() -> new NotFoundException("No pending order found for destination table ID: " + toTableId));
 
         fromOrder.getOrderDetails().forEach(d -> toOrder.addProduct(d.getProduct(), d.getQuantity(), d.getNote()));
@@ -179,8 +171,8 @@ public class TableSessionServiceImpl implements TableSessionService {
         orderRepository.delete(fromOrder);
         fromTable.setStatus(TableStatus.AVAILABLE);
 
-        sendTableSessionUpdate(fromTable);
-        sendTableSessionUpdate(toTable);
+        eventPublisher.publishEvent(new TableSessionUpdatedEvent(this, fromTable));
+        eventPublisher.publishEvent(new TableSessionUpdatedEvent(this, toTable));
 
         return toTable;
     }
@@ -196,14 +188,14 @@ public class TableSessionServiceImpl implements TableSessionService {
         if (fromTable.getStatus() != TableStatus.OCCUPIED)
             throw new BadRequestException("Source table is not occupied.");
 
-        Order fromOrder = orderRepository.getOrderByStatusPendingForUpdate(fromTable.getId())
+        Order fromOrder = orderRepository.getOrderByStatusInProgressForUpdate(fromTable.getId())
                 .orElseThrow(() -> new NotFoundException("No pending order found for source table ID: " + fromTableId));
 
-        Order toOrder = orderRepository.getOrderByStatusPendingForUpdate(toTable.getId())
+        Order toOrder = orderRepository.getOrderByStatusInProgressForUpdate(toTable.getId())
                 .orElseGet(() -> {
                     toTable.setStatus(TableStatus.OCCUPIED);
                     Order newOrder = new Order();
-                    newOrder.setStatus(OrderStatus.PENDING);
+                    newOrder.setStatus(OrderStatus.IN_PROGRESS);
                     newOrder.setOrderTable(toTable);
                     return orderRepository.save(newOrder);
                 });
@@ -230,8 +222,8 @@ public class TableSessionServiceImpl implements TableSessionService {
             orderRepository.delete(fromOrder);
         }
 
-        sendTableSessionUpdate(fromTable);
-        sendTableSessionUpdate(toTable);
+        eventPublisher.publishEvent(new TableSessionUpdatedEvent(this, fromTable));
+        eventPublisher.publishEvent(new TableSessionUpdatedEvent(this, toTable));
 
         return toTable;
     }
@@ -245,25 +237,26 @@ public class TableSessionServiceImpl implements TableSessionService {
         if (orderTable.getStatus() != TableStatus.OCCUPIED)
             throw new BadRequestException("Table is not occupied.");
 
-        Order order = orderRepository.getOrderByStatusPendingForUpdate(orderTable.getId())
+        Order order = orderRepository.getOrderByStatusInProgressForUpdate(orderTable.getId())
                 .orElseThrow(() -> new NotFoundException("No pending order found for table ID: " + tableId));
 
         if (order.getOrderDetails().isEmpty())
             throw new BadRequestException("Cannot checkout an order with no items.");
 
-        Invoice invoice = new Invoice();
-        invoice.setOrderTable(orderTable);
-        invoice.setOrder(order);
-        invoice.setStatus(InvoiceStatus.PAID);
-        invoice.setPaymentMethod(paymentMethod);
-        invoice.setTotalAmount(order.getTotalAmount());
+        Invoice invoice = Invoice.builder()
+                .order(order)
+                .orderTable(orderTable)
+                .paymentMethod(paymentMethod)
+                .status(InvoiceStatus.PAID)
+                .totalAmount(order.getTotalAmount())
+                .build();
 
         invoiceRepository.save(invoice);
 
         order.setStatus(OrderStatus.COMPLETED);
         orderTable.setStatus(TableStatus.AVAILABLE);
 
-        sendTableSessionUpdate(orderTable);
+        eventPublisher.publishEvent(new TableSessionUpdatedEvent(this, orderTable));
 
         return invoice;
     }
@@ -276,7 +269,7 @@ public class TableSessionServiceImpl implements TableSessionService {
         if (orderTable.getStatus() == TableStatus.AVAILABLE)
             throw new BadRequestException("Table is already available.");
 
-        Order order = orderRepository.getOrderByStatusPendingForUpdate(orderTable.getId())
+        Order order = orderRepository.getOrderByStatusInProgressForUpdate(orderTable.getId())
                 .orElseThrow(() -> new NotFoundException("No pending order found for table ID: " + tableId));
 
         for (OrderDetail detail : order.getOrderDetails()) {
@@ -287,7 +280,7 @@ public class TableSessionServiceImpl implements TableSessionService {
         order.setStatus(OrderStatus.CANCELLED);
         orderTable.setStatus(TableStatus.AVAILABLE);
 
-        sendTableSessionUpdate(orderTable);
+        eventPublisher.publishEvent(new TableSessionUpdatedEvent(this, orderTable));
 
         return orderTable;
     }

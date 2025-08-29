@@ -1,14 +1,12 @@
 package hoanght.posapi.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -39,10 +37,16 @@ public class OrderDetail implements Serializable {
     private String note;
 
     @Digits(integer = 10, fraction = 3)
-    @Column(name = "quantity", nullable = false)
+    @Column(name = "quantity")
     private BigDecimal quantity;
 
-    @Digits(integer = 10, fraction = 3)
+    @Column(name = "start_time")
+    private LocalDateTime startTime;
+
+    @Column(name = "end_time")
+    private LocalDateTime endTime;
+
+    @Digits(integer = 10, fraction = 0)
     @Column(name = "price", nullable = false)
     private BigDecimal price;
 }

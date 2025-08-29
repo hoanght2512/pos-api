@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 @Data
 public class OrderDetailSplitItem {
     @NotNull
+    @Min(1)
     @JsonProperty("detail_id")
     private Long orderDetailId;
 

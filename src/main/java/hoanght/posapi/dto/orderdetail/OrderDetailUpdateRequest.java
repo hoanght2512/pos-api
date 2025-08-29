@@ -1,7 +1,6 @@
 package hoanght.posapi.dto.orderdetail;
 
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Min;
 import lombok.Data;
 
 import java.math.BigDecimal;

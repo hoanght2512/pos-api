@@ -30,7 +30,7 @@ public class TableSessionAssembler extends RepresentationModelAssemblerSupport<O
     @NonNull
     public TableSessionResponse toModel(@NonNull OrderTable table) {
         TableSessionResponse response = modelMapper.map(table, TableSessionResponse.class);
-        OrderResponse order = orderRepository.getOrderByStatusPending(table.getId())
+        OrderResponse order = orderRepository.getOrderByStatusInProgress(table.getId())
                 .map(o -> modelMapper.map(o, OrderResponse.class))
                 .orElse(null);
         response.setOrder(order);

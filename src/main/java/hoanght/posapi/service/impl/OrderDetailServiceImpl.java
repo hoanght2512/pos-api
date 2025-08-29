@@ -27,9 +27,11 @@ public class OrderDetailServiceImpl implements OrderDetailService {
 
     private OrderDetail findAndValidateOrderDetail(Long orderDetailId) {
         OrderDetail orderDetail = orderDetailRepository.findById(orderDetailId).orElseThrow(() -> new NotFoundException("Order detail not found with id: " + orderDetailId));
+        Order order = orderDetail.getOrder();
 
-        if (!orderDetail.getOrder().getStatus().equals(OrderStatus.PENDING))
-            throw new BadRequestException("Cannot modify an order that is not in PENDING status.");
+        if (!order.getStatus().equals(OrderStatus.IN_PROGRESS))
+            throw new BadRequestException("Cannot modify an order that is not in progress.");
+
         return orderDetail;
     }
 

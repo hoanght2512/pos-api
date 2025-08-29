@@ -12,9 +12,9 @@ import java.util.Optional;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
     @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
-    @Query("SELECT o FROM Order o WHERE o.orderTable.id = ?1 AND o.status = 'PENDING'")
-    Optional<Order> getOrderByStatusPendingForUpdate(Long tableId);
+    @Query("SELECT o FROM Order o WHERE o.orderTable.id = ?1 AND o.status = 'IN_PROGRESS'")
+    Optional<Order> getOrderByStatusInProgressForUpdate(Long tableId);
 
-    @Query("SELECT o FROM Order o WHERE o.orderTable.id = ?1 AND o.status = 'PENDING'")
-    Optional<Order> getOrderByStatusPending(Long tableId);
+    @Query("SELECT o FROM Order o WHERE o.orderTable.id = ?1 AND o.status = 'IN_PROGRESS'")
+    Optional<Order> getOrderByStatusInProgress(Long tableId);
 }

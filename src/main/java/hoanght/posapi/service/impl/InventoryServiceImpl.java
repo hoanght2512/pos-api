@@ -5,7 +5,6 @@ import hoanght.posapi.repository.jpa.InventoryRepository;
 import hoanght.posapi.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 

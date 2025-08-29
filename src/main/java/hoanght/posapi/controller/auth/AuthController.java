@@ -14,33 +14,33 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    private final AuthService AuthService;
+    private final AuthService authService;
 
     @PostMapping("/login")
     public ResponseEntity<DataResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
-        return ResponseEntity.ok(DataResponse.success("Login successful", AuthService.login(loginRequest)));
+        return ResponseEntity.ok(DataResponse.success("Login successful", authService.login(loginRequest)));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<DataResponse<AuthResponse>> refresh(@RequestParam("token") String token) {
-        return ResponseEntity.ok(DataResponse.success("Token refreshed successfully", AuthService.refresh(token)));
+        return ResponseEntity.ok(DataResponse.success("Token refreshed successfully", authService.refresh(token)));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<DataResponse<Void>> logout(@RequestParam(value = "token") String token) {
-        AuthService.logout(token);
+        authService.logout(token);
         return ResponseEntity.ok(DataResponse.success("Logged out successfully"));
     }
 
     @PostMapping("/forgot-password")
     public ResponseEntity<DataResponse<Void>> forgotPassword(@RequestParam String email) {
-        AuthService.forgotPassword(email);
+        authService.forgotPassword(email);
         return ResponseEntity.ok(DataResponse.success("Reset password link sent successfully"));
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<DataResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
-        AuthService.resetPassword(resetPasswordRequest);
+        authService.resetPassword(resetPasswordRequest);
         return ResponseEntity.ok(DataResponse.success("Password reset successfully"));
     }
 }

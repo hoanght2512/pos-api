@@ -1,4 +1,4 @@
-package hoanght.posapi.tasks;
+package hoanght.posapi.task;
 
 import hoanght.posapi.dto.common.EmailMessage;
 import jakarta.mail.MessagingException;

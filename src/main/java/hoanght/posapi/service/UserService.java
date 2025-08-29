@@ -1,5 +1,6 @@
 package hoanght.posapi.service;
 
+import hoanght.posapi.dto.user.UserCreationRequest;
 import hoanght.posapi.dto.user.UserUpdateRequest;
 import hoanght.posapi.model.User;
 import org.springframework.data.domain.Page;
@@ -10,7 +11,9 @@ public interface UserService {
 
     User findById(Long userId);
 
-    User update(Long userId, UserUpdateRequest userUpdateRequest);
+    User createUser(UserCreationRequest userCreationRequest);
+
+    User updateUser(Long userId, UserUpdateRequest userUpdateRequest);
 
     void delete(Long userId);
 }
