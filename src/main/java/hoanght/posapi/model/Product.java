@@ -1,7 +1,6 @@
 package hoanght.posapi.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import hoanght.posapi.common.ProductType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
 import lombok.Getter;
@@ -27,10 +26,6 @@ public class Product implements Serializable {
     @Version
     @Column(name = "version", nullable = false)
     private Long version;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "product_type", nullable = false)
-    private ProductType productType = ProductType.COUNTABLE;
 
     @Column(name = "name", nullable = false)
     private String name;

@@ -6,7 +6,6 @@ import lombok.*;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -39,12 +38,6 @@ public class OrderDetail implements Serializable {
     @Digits(integer = 10, fraction = 3)
     @Column(name = "quantity")
     private BigDecimal quantity;
-
-    @Column(name = "start_time")
-    private LocalDateTime startTime;
-
-    @Column(name = "end_time")
-    private LocalDateTime endTime;
 
     @Digits(integer = 10, fraction = 0)
     @Column(name = "price", nullable = false)

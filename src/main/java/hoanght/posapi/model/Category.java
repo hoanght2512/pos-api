@@ -29,9 +29,6 @@ public class Category implements Serializable {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "description")
-    private String description;
-
     @Column(name = "image_url")
     private String imageUrl;
 

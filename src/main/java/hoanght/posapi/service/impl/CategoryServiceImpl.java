@@ -64,8 +64,6 @@ public class CategoryServiceImpl implements CategoryService {
             }
             existingCategory.setName(categoryUpdateRequest.getName());
         }
-
-        Optional.ofNullable(categoryUpdateRequest.getDescription()).ifPresent(existingCategory::setDescription);
         Optional.ofNullable(categoryUpdateRequest.getImageUrl()).ifPresent(existingCategory::setImageUrl);
         return categoryRepository.save(existingCategory);
     }
