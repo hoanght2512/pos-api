@@ -30,9 +30,9 @@ public class UserAdminController {
     private final UserAssembler userAssembler;
 
     @GetMapping
-    public ResponseEntity<DataResponse<?>> findAllUsers(Pageable pageable, PagedResourcesAssembler<User> pagedResourcesAssembler) {
+    public ResponseEntity<DataResponse<?>> findAllUsers(Pageable pageable, PagedResourcesAssembler<User> assembler) {
         Page<User> users = userService.findAll(pageable);
-        PagedModel<UserResponse> response = pagedResourcesAssembler.toModel(users, userAssembler);
+        PagedModel<UserResponse> response = assembler.toModel(users, userAssembler);
         return ResponseEntity.ok(DataResponse.success("Users retrieved successfully", response));
     }
 

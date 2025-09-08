@@ -19,5 +19,5 @@ public class OrderResponse {
     @JsonProperty("status")
     private OrderStatus status;
     @JsonProperty("details")
-    private List<OrderDetailResponse> orderDetails;
+    private List<OrderDetailDto> orderDetails;
 }

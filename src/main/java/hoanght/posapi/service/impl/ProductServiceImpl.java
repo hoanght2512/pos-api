@@ -10,13 +10,10 @@ import hoanght.posapi.model.Product;
 import hoanght.posapi.repository.jpa.CategoryRepository;
 import hoanght.posapi.repository.jpa.ProductRepository;
 import hoanght.posapi.service.ProductService;
+import hoanght.posapi.utils.StringUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -34,13 +31,11 @@ public class ProductServiceImpl implements ProductService {
     private final ModelMapper modelMapper;
 
     @Override
-    @Cacheable("products")
     public Page<Product> findAllProducts(Pageable pageable) {
-        return productRepository.findAll(pageable);
+        return productRepository.findAllForAdmin(pageable);
     }
 
     @Override
-    @Cacheable(value = "product", key = "#productId")
     public Product findProductById(Long productId) {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product with ID " + productId + " not found"));
@@ -48,7 +43,6 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", allEntries = true)
     public Product createProduct(ProductCreationRequest productCreationRequest) {
         if (productRepository.existsByName(productCreationRequest.getName())) {
             throw new AlreadyExistsException("Product with name " + productCreationRequest.getName() + " already exists");
@@ -63,6 +57,7 @@ public class ProductServiceImpl implements ProductService {
 
         Product product = modelMapper.map(productCreationRequest, Product.class);
         product.setCategory(category);
+        product.setSlug(generateSlug(product.getName()));
 
         if (productCreationRequest.getCountable()) {
             Inventory newInventory = new Inventory();
@@ -76,8 +71,6 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @CachePut(value = "product", key = "#productId")
-    @CacheEvict(value = "products", allEntries = true)
     public Product updateProduct(Long productId, ProductUpdateRequest productUpdateRequest) {
         Product existingProduct = productRepository.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product with ID " + productId + " not found"));
@@ -87,6 +80,7 @@ public class ProductServiceImpl implements ProductService {
                 throw new AlreadyExistsException("Product with name " + productUpdateRequest.getName() + " already exists");
             }
             existingProduct.setName(productUpdateRequest.getName());
+            existingProduct.setSlug(generateSlug(existingProduct.getName()));
         }
 
         if (productUpdateRequest.getSku() != null) {
@@ -121,14 +115,19 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "product", key = "#productId"),
-            @CacheEvict(value = "products", allEntries = true)
-    })
     public void deleteProduct(Long productId) {
         if (!productRepository.existsById(productId)) {
             throw new NotFoundException("Product with ID " + productId + " not found");
         }
         productRepository.deleteById(productId);
+    }
+
+    private String generateSlug(String name) {
+        int counter = 0;
+        String baseSlug = StringUtils.toSlug(name);
+        while (productRepository.existsBySlug(counter == 0 ? baseSlug : baseSlug + "-" + counter)) {
+            counter++;
+        }
+        return counter == 0 ? baseSlug : baseSlug + "-" + counter;
     }
 }

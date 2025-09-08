@@ -28,9 +28,9 @@ public class CategoryAdminController {
     private final CategoryAssembler categoryAssembler;
 
     @GetMapping
-    public ResponseEntity<DataResponse<?>> findAllCategories(@PageableDefault Pageable pageable, PagedResourcesAssembler<Category> pagedResourcesAssembler) {
+    public ResponseEntity<DataResponse<?>> findAllCategories(@PageableDefault Pageable pageable, PagedResourcesAssembler<Category> assembler) {
         Page<Category> categoryPage = categoryService.findAll(pageable);
-        PagedModel<CategoryResponse> response = pagedResourcesAssembler.toModel(categoryPage, categoryAssembler);
+        PagedModel<CategoryResponse> response = assembler.toModel(categoryPage, categoryAssembler);
         return ResponseEntity.ok(DataResponse.success("Categories retrieved successfully", response));
     }
 

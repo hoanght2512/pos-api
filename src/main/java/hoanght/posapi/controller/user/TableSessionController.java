@@ -30,9 +30,9 @@ public class TableSessionController {
     private final InvoiceAssembler invoiceAssembler;
 
     @GetMapping
-    public ResponseEntity<DataResponse<PagedModel<TableSessionResponse>>> getAllTableSessions(@PageableDefault Pageable pageable, PagedResourcesAssembler<OrderTable> pagedResourcesAssembler) {
+    public ResponseEntity<DataResponse<PagedModel<TableSessionResponse>>> getAllTableSessions(@PageableDefault Pageable pageable, PagedResourcesAssembler<OrderTable> assembler) {
         Page<OrderTable> tableSessions = tableSessionService.getAllTableSessions(pageable);
-        PagedModel<TableSessionResponse> response = pagedResourcesAssembler.toModel(tableSessions, tableSessionAssembler);
+        PagedModel<TableSessionResponse> response = assembler.toModel(tableSessions, tableSessionAssembler);
         return ResponseEntity.ok(DataResponse.success(response));
     }
 

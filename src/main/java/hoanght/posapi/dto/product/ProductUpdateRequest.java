@@ -1,6 +1,7 @@
 package hoanght.posapi.dto.product;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import hoanght.posapi.common.ProductUnit;
 import jakarta.validation.constraints.DecimalMin;
 import lombok.Data;
 
@@ -11,6 +12,8 @@ public class ProductUpdateRequest {
     private String name;
 
     private String description;
+
+    private ProductUnit unit;
 
     private String sku;
 

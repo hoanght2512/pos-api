@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
 
 import java.io.Serializable;
 import java.util.LinkedHashSet;
@@ -15,7 +14,6 @@ import java.util.Set;
 @Entity
 @Table(name = "categories")
 @SQLDelete(sql = "UPDATE categories SET deleted = true WHERE id = ?")
-@SQLRestriction("deleted = false")
 public class Category implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,7 +24,10 @@ public class Category implements Serializable {
     @Column(name = "version", nullable = false)
     private Long version;
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "slug", nullable = false, unique = true)
+    private String slug;
+
+    @Column(name = "name", nullable = false, unique = true)
     private String name;
 
     @Column(name = "image_url")

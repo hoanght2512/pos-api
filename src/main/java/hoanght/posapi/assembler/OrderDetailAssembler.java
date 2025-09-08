@@ -1,6 +1,6 @@
 package hoanght.posapi.assembler;
 
-import hoanght.posapi.dto.order.OrderDetailResponse;
+import hoanght.posapi.dto.order.OrderDetailDto;
 import hoanght.posapi.model.OrderDetail;
 import lombok.NonNull;
 import org.modelmapper.ModelMapper;
@@ -8,17 +8,17 @@ import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSuppor
 import org.springframework.stereotype.Component;
 
 @Component
-public class OrderDetailAssembler extends RepresentationModelAssemblerSupport<OrderDetail, OrderDetailResponse> {
+public class OrderDetailAssembler extends RepresentationModelAssemblerSupport<OrderDetail, OrderDetailDto> {
     private final ModelMapper modelMapper;
 
     public OrderDetailAssembler(ModelMapper modelMapper) {
-        super(OrderDetail.class, OrderDetailResponse.class);
+        super(OrderDetail.class, OrderDetailDto.class);
         this.modelMapper = modelMapper;
     }
 
     @Override
     @NonNull
-    public OrderDetailResponse toModel(@NonNull OrderDetail orderDetail) {
-        return modelMapper.map(orderDetail, OrderDetailResponse.class);
+    public OrderDetailDto toModel(@NonNull OrderDetail orderDetail) {
+        return modelMapper.map(orderDetail, OrderDetailDto.class);
     }
 }

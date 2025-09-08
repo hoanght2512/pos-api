@@ -28,9 +28,9 @@ public class ProductAdminController {
     private final ProductAssembler productAssembler;
 
     @GetMapping
-    public ResponseEntity<DataResponse<?>> findAllProducts(@PageableDefault Pageable pageable, PagedResourcesAssembler<Product> pagedResourcesAssembler) {
+    public ResponseEntity<DataResponse<?>> findAllProducts(@PageableDefault Pageable pageable, PagedResourcesAssembler<Product> assembler) {
         Page<Product> products = productService.findAllProducts(pageable);
-        PagedModel<ProductResponse> response = pagedResourcesAssembler.toModel(products, productAssembler);
+        PagedModel<ProductResponse> response = assembler.toModel(products, productAssembler);
         return ResponseEntity.ok(DataResponse.success("Products retrieved successfully", response));
     }
 

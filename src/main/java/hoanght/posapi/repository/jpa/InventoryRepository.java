@@ -12,6 +12,6 @@ import java.math.BigDecimal;
 @Repository
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     @Modifying
-    @Query("UPDATE Inventory i SET i.quantity = i.quantity + :quantityChange WHERE i.id = :productId AND (i.quantity + :quantityChange) >= 0")
+    @Query("UPDATE Inventory i SET i.quantity = i.quantity + :quantityChange WHERE i.product.id = :productId AND (i.quantity + :quantityChange) >= 0")
     int adjustInventory(@Param("productId") Long productId, @Param("quantityChange") BigDecimal quantityChange);
 }

@@ -9,11 +9,9 @@ import org.springframework.hateoas.RepresentationModel;
 @Data
 public class CategoryResponse extends RepresentationModel<CategoryResponse> {
     private Long id;
-
     private String name;
-
     private String description;
-
+    private String slug;
     @JsonProperty("image_url")
     private String imageUrl;
 }

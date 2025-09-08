@@ -17,10 +17,10 @@ import java.math.BigDecimal;
         "note",
         "price"
 })
-public class OrderDetailResponse extends RepresentationModel<OrderDetailResponse> {
+public class OrderDetailDto extends RepresentationModel<OrderDetailDto> {
     private Long id;
     @JsonProperty("product")
-    private OrderDetailProductResponse product;
+    private ProductDto product;
     private BigDecimal quantity;
     private String note;
     @JsonProperty("price")
