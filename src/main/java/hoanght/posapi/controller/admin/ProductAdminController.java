@@ -28,35 +28,35 @@ public class ProductAdminController {
     private final ProductAssembler productAssembler;
 
     @GetMapping
-    public ResponseEntity<DataResponse<?>> findAllProducts(@PageableDefault Pageable pageable, PagedResourcesAssembler<Product> pagedResourcesAssembler) {
-        Page<Product> products = productService.findAll(pageable);
-        PagedModel<ProductResponse> response = pagedResourcesAssembler.toModel(products, productAssembler);
+    public ResponseEntity<DataResponse<?>> findAllProducts(@PageableDefault Pageable pageable, PagedResourcesAssembler<Product> assembler) {
+        Page<Product> products = productService.findAllProducts(pageable);
+        PagedModel<ProductResponse> response = assembler.toModel(products, productAssembler);
         return ResponseEntity.ok(DataResponse.success("Products retrieved successfully", response));
     }
 
     @GetMapping("/{productId}")
     public ResponseEntity<DataResponse<?>> findProductById(@PathVariable Long productId) {
-        Product product = productService.findById(productId);
+        Product product = productService.findProductById(productId);
         ProductResponse response = productAssembler.toModel(product);
         return ResponseEntity.ok(DataResponse.success("Product found successfully", response));
     }
 
     @PostMapping
     public ResponseEntity<Void> createProduct(@Valid @RequestBody ProductCreationRequest productCreationRequest) {
-        Product createdProduct = productService.create(productCreationRequest);
+        Product createdProduct = productService.createProduct(productCreationRequest);
         return ResponseEntity.created(linkTo(methodOn(ProductAdminController.class).findProductById(createdProduct.getId())).toUri()).build();
     }
 
     @PutMapping("/{productId}")
     public ResponseEntity<DataResponse<?>> updateProduct(@PathVariable Long productId, @Valid @RequestBody ProductUpdateRequest productUpdateRequest) {
-        Product product = productService.update(productId, productUpdateRequest);
+        Product product = productService.updateProduct(productId, productUpdateRequest);
         ProductResponse response = productAssembler.toModel(product);
         return ResponseEntity.ok(DataResponse.success("Product updated successfully", response));
     }
 
     @DeleteMapping("/{productId}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long productId) {
-        productService.delete(productId);
+        productService.deleteProduct(productId);
         return ResponseEntity.noContent().build();
     }
 }

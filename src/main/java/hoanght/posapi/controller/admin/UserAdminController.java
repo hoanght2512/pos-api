@@ -2,6 +2,7 @@ package hoanght.posapi.controller.admin;
 
 import hoanght.posapi.assembler.UserAssembler;
 import hoanght.posapi.dto.common.DataResponse;
+import hoanght.posapi.dto.user.UserCreationRequest;
 import hoanght.posapi.dto.user.UserResponse;
 import hoanght.posapi.dto.user.UserUpdateRequest;
 import hoanght.posapi.model.User;
@@ -17,6 +18,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -26,9 +30,9 @@ public class UserAdminController {
     private final UserAssembler userAssembler;
 
     @GetMapping
-    public ResponseEntity<DataResponse<?>> findAllUsers(Pageable pageable, PagedResourcesAssembler<User> pagedResourcesAssembler) {
+    public ResponseEntity<DataResponse<?>> findAllUsers(Pageable pageable, PagedResourcesAssembler<User> assembler) {
         Page<User> users = userService.findAll(pageable);
-        PagedModel<UserResponse> response = pagedResourcesAssembler.toModel(users, userAssembler);
+        PagedModel<UserResponse> response = assembler.toModel(users, userAssembler);
         return ResponseEntity.ok(DataResponse.success("Users retrieved successfully", response));
     }
 
@@ -39,12 +43,15 @@ public class UserAdminController {
         return ResponseEntity.ok(DataResponse.success("User found successfully", response));
     }
 
-    // Note: User creation endpoint is intentionally omitted as per requirements
-//    @PostMapping
+    @PostMapping
+    public ResponseEntity<Void> createUser(@Valid @RequestBody UserCreationRequest userCreationRequest) {
+        User newUser = userService.createUser(userCreationRequest);
+        return ResponseEntity.created(linkTo(methodOn(UserAdminController.class).findUserById(newUser.getId())).toUri()).build();
+    }
 
     @PutMapping("/{userId}")
     public ResponseEntity<DataResponse<?>> updateUser(@PathVariable Long userId, @Valid @RequestBody UserUpdateRequest userUpdateRequest) {
-        User updatedUser = userService.update(userId, userUpdateRequest);
+        User updatedUser = userService.updateUser(userId, userUpdateRequest);
         UserResponse response = userAssembler.toModel(updatedUser);
         return ResponseEntity.ok(DataResponse.success("User updated successfully", response));
     }

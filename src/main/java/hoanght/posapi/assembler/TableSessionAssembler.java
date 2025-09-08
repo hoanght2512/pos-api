@@ -1,5 +1,6 @@
 package hoanght.posapi.assembler;
 
+import hoanght.posapi.common.PaymentMethod;
 import hoanght.posapi.controller.user.TableSessionController;
 import hoanght.posapi.dto.order.OrderResponse;
 import hoanght.posapi.dto.tablesession.TableSessionResponse;
@@ -29,7 +30,7 @@ public class TableSessionAssembler extends RepresentationModelAssemblerSupport<O
     @NonNull
     public TableSessionResponse toModel(@NonNull OrderTable table) {
         TableSessionResponse response = modelMapper.map(table, TableSessionResponse.class);
-        OrderResponse order = orderRepository.getOrderByStatusPending(table.getId())
+        OrderResponse order = orderRepository.getOrderByStatusInProgress(table.getId())
                 .map(o -> modelMapper.map(o, OrderResponse.class))
                 .orElse(null);
         response.setOrder(order);
@@ -40,7 +41,7 @@ public class TableSessionAssembler extends RepresentationModelAssemblerSupport<O
         response.add(linkTo(methodOn(TableSessionController.class).changeTableSession(table.getId(), null)).withRel("change-table"));
         response.add(linkTo(methodOn(TableSessionController.class).mergeTableSessions(table.getId(), null)).withRel("merge-tables"));
         response.add(linkTo(methodOn(TableSessionController.class).splitTableSession(table.getId(), null, null)).withRel("split-table"));
-        response.add(linkTo(methodOn(TableSessionController.class).checkoutTableSession(table.getId())).withRel("checkout"));
+        response.add(linkTo(methodOn(TableSessionController.class).checkoutTableSession(table.getId(), PaymentMethod.CASH)).withRel("checkout"));
         response.add(linkTo(methodOn(TableSessionController.class).cancelTableSession(table.getId())).withRel("cancel"));
         return response;
     }

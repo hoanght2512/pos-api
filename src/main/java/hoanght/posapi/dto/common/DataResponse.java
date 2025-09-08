@@ -24,7 +24,7 @@ public class DataResponse<T> {
     private T data;
 
     public static <T> DataResponse<T> success(T data) {
-        return DataResponse.<T>builder().success(true).status(200).message("Get data successfully").timestamp(Instant.now()).data(data).build();
+        return DataResponse.<T>builder().success(true).status(200).message("Fetch data successfully").timestamp(Instant.now()).data(data).build();
     }
 
     public static <T> DataResponse<T> success(String message) {

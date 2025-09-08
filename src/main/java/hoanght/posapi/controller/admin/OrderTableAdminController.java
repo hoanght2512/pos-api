@@ -28,9 +28,9 @@ public class OrderTableAdminController {
     private final OrderTableAssembler orderTableAssembler;
 
     @GetMapping
-    public ResponseEntity<DataResponse<?>> findAllTables(@PageableDefault Pageable pageable, PagedResourcesAssembler<OrderTable> pagedResourcesAssembler) {
+    public ResponseEntity<DataResponse<?>> findAllTables(@PageableDefault Pageable pageable, PagedResourcesAssembler<OrderTable> assembler) {
         Page<OrderTable> tables = orderTableService.findAll(pageable);
-        PagedModel<OrderTableResponse> response = pagedResourcesAssembler.toModel(tables, orderTableAssembler);
+        PagedModel<OrderTableResponse> response = assembler.toModel(tables, orderTableAssembler);
         return ResponseEntity.ok(DataResponse.success("Tables retrieved successfully", response));
     }
 

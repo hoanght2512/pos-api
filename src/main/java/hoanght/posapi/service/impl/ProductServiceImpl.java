@@ -10,18 +10,16 @@ import hoanght.posapi.model.Product;
 import hoanght.posapi.repository.jpa.CategoryRepository;
 import hoanght.posapi.repository.jpa.ProductRepository;
 import hoanght.posapi.service.ProductService;
+import hoanght.posapi.utils.StringUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 @Slf4j
@@ -33,22 +31,19 @@ public class ProductServiceImpl implements ProductService {
     private final ModelMapper modelMapper;
 
     @Override
-    @Cacheable("products")
-    public Page<Product> findAll(Pageable pageable) {
-        return productRepository.findAll(pageable);
+    public Page<Product> findAllProducts(Pageable pageable) {
+        return productRepository.findAllForAdmin(pageable);
     }
 
     @Override
-    @Cacheable(value = "product", key = "#productId")
-    public Product findById(Long productId) {
+    public Product findProductById(Long productId) {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product with ID " + productId + " not found"));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", allEntries = true)
-    public Product create(ProductCreationRequest productCreationRequest) {
+    public Product createProduct(ProductCreationRequest productCreationRequest) {
         if (productRepository.existsByName(productCreationRequest.getName())) {
             throw new AlreadyExistsException("Product with name " + productCreationRequest.getName() + " already exists");
         }
@@ -57,17 +52,17 @@ public class ProductServiceImpl implements ProductService {
             throw new AlreadyExistsException("Product with SKU " + productCreationRequest.getSku() + " already exists");
         }
 
-
         Category category = categoryRepository.findById(productCreationRequest.getCategoryId())
                 .orElseThrow(() -> new NotFoundException("Category with ID " + productCreationRequest.getCategoryId() + " not found"));
 
         Product product = modelMapper.map(productCreationRequest, Product.class);
         product.setCategory(category);
+        product.setSlug(generateSlug(product.getName()));
 
         if (productCreationRequest.getCountable()) {
             Inventory newInventory = new Inventory();
             newInventory.setProduct(product);
-            newInventory.setQuantity(productCreationRequest.getQuantity() != null ? productCreationRequest.getQuantity() : 0L);
+            newInventory.setQuantity(productCreationRequest.getQuantity() != null ? productCreationRequest.getQuantity() : BigDecimal.ZERO);
             product.setInventory(newInventory);
         }
 
@@ -76,26 +71,21 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @CachePut(value = "product", key = "#productId")
-    @CacheEvict(value = "products", allEntries = true)
-    public Product update(Long productId, ProductUpdateRequest productUpdateRequest) {
+    public Product updateProduct(Long productId, ProductUpdateRequest productUpdateRequest) {
         Product existingProduct = productRepository.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product with ID " + productId + " not found"));
 
         if (productUpdateRequest.getName() != null) {
-            if (!productUpdateRequest.getName().equalsIgnoreCase(existingProduct.getName())) {
-                if (productRepository.existsByName(productUpdateRequest.getName())) {
-                    throw new AlreadyExistsException("Product with name " + productUpdateRequest.getName() + " already exists");
-                }
+            if (productRepository.existsByNameAndIdNot(productUpdateRequest.getName(), productId)) {
+                throw new AlreadyExistsException("Product with name " + productUpdateRequest.getName() + " already exists");
             }
             existingProduct.setName(productUpdateRequest.getName());
+            existingProduct.setSlug(generateSlug(existingProduct.getName()));
         }
 
         if (productUpdateRequest.getSku() != null) {
-            if (!productUpdateRequest.getSku().equalsIgnoreCase(existingProduct.getSku())) {
-                if (productRepository.existsBySku(productUpdateRequest.getSku())) {
-                    throw new AlreadyExistsException("Product with SKU " + productUpdateRequest.getSku() + " already exists");
-                }
+            if (productRepository.existsBySkuAndIdNot(productUpdateRequest.getSku(), productId)) {
+                throw new AlreadyExistsException("Product with SKU " + productUpdateRequest.getSku() + " already exists");
             }
             existingProduct.setSku(productUpdateRequest.getSku());
         }
@@ -110,32 +100,13 @@ public class ProductServiceImpl implements ProductService {
         Optional.ofNullable(productUpdateRequest.getImageUrl()).ifPresent(existingProduct::setImageUrl);
 
         if (productUpdateRequest.getCountable() != null) {
-            existingProduct.setCountable(productUpdateRequest.getCountable());
-
-            if (productUpdateRequest.getCountable()) {
-                Inventory inventory = existingProduct.getInventory();
-                if (inventory == null) {
-                    inventory = new Inventory();
-                    inventory.setProduct(existingProduct);
-                    existingProduct.setInventory(inventory);
-                }
-                if (productUpdateRequest.getQuantity() != null) {
-                    inventory.setQuantity(productUpdateRequest.getQuantity());
-                }
-            } else {
-                if (existingProduct.getInventory() != null) {
-                    existingProduct.setInventory(null);
-                }
-            }
-        } else {
-            if (existingProduct.getCountable() && productUpdateRequest.getQuantity() != null) {
-                Inventory inventory = existingProduct.getInventory();
-                if (inventory == null) {
-                    inventory = new Inventory();
-                    inventory.setProduct(existingProduct);
-                    existingProduct.setInventory(inventory);
-                }
-                inventory.setQuantity(productUpdateRequest.getQuantity());
+            if (productUpdateRequest.getCountable() && existingProduct.getInventory() == null) {
+                Inventory newInventory = new Inventory();
+                newInventory.setProduct(existingProduct);
+                newInventory.setQuantity(productUpdateRequest.getQuantity() != null ? productUpdateRequest.getQuantity() : BigDecimal.ZERO);
+                existingProduct.setInventory(newInventory);
+            } else if (!productUpdateRequest.getCountable()) {
+                existingProduct.setInventory(null);
             }
         }
 
@@ -144,14 +115,19 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "product", key = "#productId"),
-            @CacheEvict(value = "products", allEntries = true)
-    })
-    public void delete(Long productId) {
+    public void deleteProduct(Long productId) {
         if (!productRepository.existsById(productId)) {
             throw new NotFoundException("Product with ID " + productId + " not found");
         }
         productRepository.deleteById(productId);
+    }
+
+    private String generateSlug(String name) {
+        int counter = 0;
+        String baseSlug = StringUtils.toSlug(name);
+        while (productRepository.existsBySlug(counter == 0 ? baseSlug : baseSlug + "-" + counter)) {
+            counter++;
+        }
+        return counter == 0 ? baseSlug : baseSlug + "-" + counter;
     }
 }

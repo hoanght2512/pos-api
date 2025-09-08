@@ -21,6 +21,10 @@ public class User implements Serializable {
     @Column(name = "id", nullable = false)
     private Long id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "username", nullable = false, unique = true)
     private String username;
 
@@ -47,7 +51,7 @@ public class User implements Serializable {
     private boolean isEmailVerified = false;
 
     @Column(name = "is_enabled", nullable = false)
-    private boolean isEnabled = false;
+    private boolean isEnabled = true;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))

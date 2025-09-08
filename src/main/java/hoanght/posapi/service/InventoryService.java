@@ -1,5 +1,7 @@
 package hoanght.posapi.service;
 
+import java.math.BigDecimal;
+
 public interface InventoryService {
-    void updateProductStock(long productId, long quantityChange);
+    void adjustInventory(Long productId, BigDecimal quantityChange);
 }

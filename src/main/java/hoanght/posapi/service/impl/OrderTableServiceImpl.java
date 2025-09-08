@@ -9,10 +9,6 @@ import hoanght.posapi.repository.jpa.OrderTableRepository;
 import hoanght.posapi.service.OrderTableService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,21 +21,18 @@ public class OrderTableServiceImpl implements OrderTableService {
     private final ModelMapper modelMapper;
 
     @Override
-    @Cacheable(value = "table", key = "#tableId")
     public OrderTable findById(Long tableId) {
         return orderTableRepository.findById(tableId)
                 .orElseThrow(() -> new NotFoundException("Table not found with id: " + tableId));
     }
 
     @Override
-    @Cacheable(value = "tables")
     public Page<OrderTable> findAll(Pageable pageable) {
         return orderTableRepository.findAll(pageable);
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "tables", allEntries = true)
     public OrderTable create(OrderTableCreationRequest orderTableCreationRequest) {
         if (orderTableRepository.existsByName(orderTableCreationRequest.getName())) {
             throw new AlreadyExistsException("Table with name " + orderTableCreationRequest.getName() + " already exists");
@@ -50,8 +43,6 @@ public class OrderTableServiceImpl implements OrderTableService {
 
     @Override
     @Transactional
-    @CachePut(value = "table", key = "#tableId")
-    @CacheEvict(value = "tables", allEntries = true)
     public OrderTable update(Long tableId, OrderTableUpdateRequest orderTableUpdateRequest) {
         OrderTable existingTable = orderTableRepository.findById(tableId)
                 .orElseThrow(() -> new NotFoundException("Table not found with id: " + tableId));
@@ -66,10 +57,6 @@ public class OrderTableServiceImpl implements OrderTableService {
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "table", key = "#tableId"),
-            @CacheEvict(value = "tables", allEntries = true)
-    })
     public void delete(Long tableId) {
         OrderTable existingTable = orderTableRepository.findById(tableId)
                 .orElseThrow(() -> new NotFoundException("Table not found with id: " + tableId));

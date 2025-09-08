@@ -7,13 +7,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface ProductService {
-    Page<Product> findAll(Pageable pageable);
+    Page<Product> findAllProducts(Pageable pageable);
 
-    Product findById(Long productId);
+    Product findProductById(Long productId);
 
-    Product create(ProductCreationRequest productCreationRequest);
+    Product createProduct(ProductCreationRequest productCreationRequest);
 
-    Product update(Long productId, ProductUpdateRequest productUpdateRequest);
+    Product updateProduct(Long productId, ProductUpdateRequest productUpdateRequest);
 
-    void delete(Long productId);
+    void deleteProduct(Long productId);
 }

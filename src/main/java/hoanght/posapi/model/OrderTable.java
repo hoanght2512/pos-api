@@ -24,6 +24,10 @@ public class OrderTable implements Serializable {
     @Column(name = "id", nullable = false)
     private Long id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "name", nullable = false, unique = true)
     private String name;
 
@@ -34,7 +38,7 @@ public class OrderTable implements Serializable {
     @Column(name = "deleted", nullable = false)
     private Boolean deleted = false;
 
-    @OneToMany(mappedBy = "orderTable", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "orderTable")
     @JsonManagedReference
     private Set<Order> orders = new LinkedHashSet<>();
 }

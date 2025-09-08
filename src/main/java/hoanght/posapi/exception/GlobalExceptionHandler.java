@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -13,6 +14,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.lang.reflect.Field;
@@ -44,6 +46,15 @@ public class GlobalExceptionHandler {
             errors.put(jsonFieldName, error.getDefaultMessage());
         });
         DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.BAD_REQUEST.value(), "Invalid request data", errors);
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<DataResponse<Void>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
+        log.debug("Type mismatch error: {}", ex.getMessage());
+        String errorMessage = String.format("The parameter '%s' of value '%s' could not be converted to type '%s'",
+                ex.getName(), ex.getValue(), Objects.requireNonNull(ex.getRequiredType()).getSimpleName());
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.BAD_REQUEST.value(), errorMessage);
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
@@ -105,9 +116,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<DataResponse<Void>> handleNoResourceFoundException(NoResourceFoundException ex) {
-        log.debug("Resource not found: {}", ex.getMessage());
+        log.debug("No resource found: {}", ex.getMessage());
         DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<DataResponse<Void>> handleOptimisticLockingFailureException(ObjectOptimisticLockingFailureException ex) {
+        log.debug("Optimistic locking failure: {}", ex.getMessage());
+        DataResponse<Void> errorResponse = DataResponse.error(HttpStatus.CONFLICT.value(), "Conflict occurred due to concurrent modification. Please retry.");
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(Exception.class)

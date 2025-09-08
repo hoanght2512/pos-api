@@ -11,9 +11,9 @@ import org.springframework.data.annotation.LastModifiedBy;
 public class UserDateAudit extends DateAudit {
     @CreatedBy
     @Column(name = "created_by", nullable = false, updatable = false)
-    private Long createdBy;
+    private String createdBy;
 
     @LastModifiedBy
     @Column(name = "updated_by", nullable = false)
-    private Long updatedBy;
+    private String updatedBy;
 }

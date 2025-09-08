@@ -1,6 +1,7 @@
 package hoanght.posapi.dto.product;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import hoanght.posapi.common.ProductUnit;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
@@ -14,13 +15,15 @@ public class ProductCreationRequest {
 
     private String description;
 
+    private ProductUnit unit;
+
     private String sku;
 
     @NotNull
     private Boolean countable;
 
-    @Min(0)
-    private Long quantity;
+    @DecimalMin("0.1")
+    private BigDecimal quantity;
 
     @DecimalMin(value = "0.0")
     private BigDecimal price;

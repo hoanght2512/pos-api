@@ -4,8 +4,8 @@ import hoanght.posapi.common.InvoiceStatus;
 import hoanght.posapi.common.PaymentMethod;
 import hoanght.posapi.model.audit.UserDateAudit;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.validation.constraints.Digits;
+import lombok.*;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -14,6 +14,9 @@ import java.math.BigDecimal;
 @Setter
 @Entity
 @Table(name = "invoices")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Invoice extends UserDateAudit implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,6 +31,7 @@ public class Invoice extends UserDateAudit implements Serializable {
     @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;
 
+    @Digits(integer = 10, fraction = 0)
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
 

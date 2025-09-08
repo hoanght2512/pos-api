@@ -1,7 +1,7 @@
 package hoanght.posapi.common;
 
 public enum OrderStatus {
-    PENDING,    // Đang chờ xử lý
+    IN_PROGRESS, // Đang tiến hành
     COMPLETED, // Đã hoàn thành
     CANCELLED   // Đã hủy
 }

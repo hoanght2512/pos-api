@@ -8,15 +8,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Optional;
 
-public class AuditorAwareImpl implements AuditorAware<Long> {
+public class AuditorAwareImpl implements AuditorAware<String> {
     @Override
     @NonNull
-    public Optional<Long> getCurrentAuditor() {
+    public Optional<String> getCurrentAuditor() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal() instanceof String) {
             return Optional.empty();
         }
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        return Optional.ofNullable(userDetails.getUser().getId());
+        return Optional.ofNullable(userDetails.getUser().getUsername());
     }
 }
